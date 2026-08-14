@@ -679,8 +679,6 @@ SCENE_CSS = r"""
     font-family: var(--camp-px-font); font-size: 11px; cursor: pointer;
   }
   .camp-del:hover { border-color: var(--ui-ink); }
-  .camp-del.armed { background: var(--ui-ink); color: var(--ui-bg); border-color: var(--ui-ink);
-                    width: auto; padding: 0 8px; }
   .camp-del.off { opacity: .42; cursor: default; }
   .camp-scan-pages { display: flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap; }
   .camp-scan-page {
@@ -691,6 +689,19 @@ SCENE_CSS = r"""
     box-shadow: 2px 2px 0 0 var(--ui-shadow);
   }
   .camp-scan-page.on { background: var(--ui-ink); color: var(--ui-bg); border-color: var(--ui-ink); }
+  .camp-modal { position: fixed; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center;
+                background: rgba(5, 5, 5, .55); }
+  .camp-modal[hidden] { display: none; }
+  .camp-modal-box { width: min(340px, 86vw); border: 3px solid var(--ui-ink); border-radius: 0;
+                    background: var(--ui-bg); color: var(--ui-ink);
+                    box-shadow: 5px 5px 0 0 var(--ui-shadow); padding: 18px 20px; }
+  .camp-modal-title { font-size: 13px; line-height: 1.5; margin-bottom: 16px; }
+  .camp-modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .camp-modal-actions button { border: 3px solid var(--ui-ink); border-radius: 0; background: var(--ui-bg);
+                               color: var(--ui-ink); font-family: var(--camp-px-font); font-size: 11px;
+                               padding: 6px 12px; cursor: pointer; box-shadow: 2px 2px 0 0 var(--ui-shadow); }
+  .camp-modal-actions button:hover { box-shadow: -2px -2px 0 0 var(--ui-shadow); transform: translate(1px, 1px); }
+  .camp-modal-actions .camp-modal-confirm { background: var(--ui-ink); color: var(--ui-bg); }
   .camp-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
   .camp-tag {
     position: relative;
@@ -914,25 +925,19 @@ SCENE_JS = r"""
     panelBody.append(make('div', 'camp-notice', `有 ${payload.warnings.length} 条记录暂时无法读取`));
   }
 
-  function armDelete(button, run, label) {
-    const disarm = () => {
-      clearTimeout(timer);
-      button.textContent = '×';
-      button.title = '删除';
-      button.classList.remove('armed');
-      button.removeEventListener('click', runOnce);
-    };
-    const runOnce = () => {
-      button.removeEventListener('click', runOnce);
-      clearTimeout(timer);
-      run();
-    };
-    button.textContent = `删掉「${label}」?`;
-    button.title = '再点一次确认删除';
-    button.classList.add('armed');
-    const timer = setTimeout(disarm, 4000);
-    button.addEventListener('click', runOnce);
+  const modal = camp.querySelector('.camp-modal');
+  let closeDeleteModal = () => {};
+  function openDeleteModal(label, run) {
+    modal.querySelector('.camp-modal-title').textContent = `删掉「${label}」? 这一条不会进回收站。`;
+    modal.hidden = false;
+    closeDeleteModal = () => { modal.hidden = true; };
+    modal.querySelector('[data-action="modal-cancel"]').onclick = () => closeDeleteModal();
+    modal.querySelector('[data-action="modal-confirm"]').onclick = () => { closeDeleteModal(); run(); };
   }
+  modal.addEventListener('click', (event) => { if (event.target === modal) closeDeleteModal(); });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !modal.hidden) closeDeleteModal();
+  });
 
   function deleteRow(file, line, button) {
     fetch('http://127.0.0.1:8799/delete', {
@@ -978,7 +983,7 @@ SCENE_JS = r"""
       del.title = '删除';
       del.type = 'button';
       if (item.raw) {
-        armDelete(del, () => deleteRow('POOL.md', item.raw, del), (item.text || '这条').slice(0, 14));
+        del.addEventListener('click', () => openDeleteModal((item.text || '这条').slice(0, 14), () => deleteRow('POOL.md', item.raw, del)));
       } else {
         del.disabled = true;
         del.classList.add('off');
@@ -1056,7 +1061,7 @@ SCENE_JS = r"""
       del.type = 'button';
       del.addEventListener('click', (event) => {
         event.stopPropagation();
-        if (project.raw) armDelete(del, () => deleteRow('SHELF.md', project.raw, del), (project.name || '这个项目').slice(0, 14));
+        if (project.raw) del.addEventListener('click', () => openDeleteModal((project.name || '这个项目').slice(0, 14), () => deleteRow('SHELF.md', project.raw, del)));
       });
       row.append(del);
       const openNow = () => {
@@ -1724,6 +1729,15 @@ def render_html(store: Path, pool: list[dict], projects: list[dict], profile: di
     </header>
     <div class="camp-panel-body"></div>
   </section>
+  <div class="camp-modal" hidden>
+    <div class="camp-modal-box">
+      <div class="camp-modal-title"></div>
+      <div class="camp-modal-actions">
+        <button type="button" data-action="modal-cancel">取消</button>
+        <button type="button" class="camp-modal-confirm" data-action="modal-confirm">确认删除</button>
+      </div>
+    </div>
+  </div>
   <div class="camp-a11y" aria-live="polite"></div>
 </main>
 <script type="application/json" id="camp-data">{payload_json}</script>

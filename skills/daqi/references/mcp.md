@@ -25,6 +25,21 @@ python3 <skill-dir>/scripts/daqi_mcp.py --store ~/.daqi
 - **DSH / WorkBuddy**：按本机 DSH 的 MCP 客户端配置把脚本注册为 stdio server；具体配置路径以当前版本实测为准。
 - 其它宿主：任何支持 MCP stdio 的客户端都能直接连。
 
+## Codex 实测记录（2026-08-15，已验收）
+
+注册：`~/.codex/config.toml` 的 `[mcp_servers.daqi]`（command = `python3`，args = 脚本路径 + `--store ~/.daqi`）。
+
+验证命令（注意 Git 信任检查）：
+
+```sh
+codex mcp list                       # 应看到 daqi enabled
+codex exec --skip-git-repo-check "用 daqi_status 看一下营地，再报告"
+```
+
+直接在未受信任目录跑 `codex exec` 会被 `Not inside a trusted directory and --skip-git-repo-check was not specified.` 拦住——这是 Codex 的工作区信任检查，不是 daqi 的问题；要么加 `--skip-git-repo-check`，要么在受信任的 Git 工作区执行。
+
+已实测通过：`mcp: daqi/daqi_status started → completed`，exit 0；`daqi_status` 只读，不修改任何 store。
+
 ## 诚实边界
 
 - stdio 服务只在发起它的那台机器上可用；云/沙箱宿主连不到本机营地。

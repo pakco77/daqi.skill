@@ -166,7 +166,7 @@ def tool_status(store: Path, args: dict) -> str:
     lines = ["马厩："]
     for key, label in camp_status.BANDS:
         lines.append(f"{label} {len(bands[key])}：")
-        for row in bands[key][:12]:
+        for row in bands[key][:60]:
             lines.append(f"  - {row['name']} · {row['path']} · {row['last']}")
     return "\n".join(lines)
 
