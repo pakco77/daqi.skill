@@ -667,14 +667,12 @@ SCENE_CSS = r"""
                     border: 2px solid var(--ui-border); white-space: nowrap; }
   .camp-scan-chip.doing { background: var(--ui-ink); color: var(--ui-bg); border-color: var(--ui-ink); }
   .camp-scan-chip.done { color: var(--ui-soft); border-color: var(--ui-border); }
-  .camp-entry, .camp-project { position: relative; }
-  .camp-entry { padding-right: 46px; }
-  .camp-project { padding-right: 46px; }
+  .camp-entry, .camp-project { position: relative; min-height: 64px; }
   .camp-item-progress { margin-top: 4px; color: var(--ui-soft); font-size: 10px;
                         overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 420px; }
   .camp-item-progress.has-now { color: var(--ui-ink); }
   .camp-del {
-    position: absolute; top: 6px; right: 6px; z-index: 2;
+    position: absolute; bottom: 6px; left: 12px; z-index: 2;
     min-width: 20px; height: 20px; padding: 0 4px; line-height: 16px;
     border: 2px solid var(--ui-border); border-radius: 0;
     background: var(--ui-bg); color: var(--ui-ink);
@@ -916,7 +914,7 @@ SCENE_JS = r"""
     panelBody.append(make('div', 'camp-notice', `有 ${payload.warnings.length} 条记录暂时无法读取`));
   }
 
-  function armDelete(button, run) {
+  function armDelete(button, run, label) {
     const disarm = () => {
       clearTimeout(timer);
       button.textContent = '×';
@@ -929,7 +927,7 @@ SCENE_JS = r"""
       clearTimeout(timer);
       run();
     };
-    button.textContent = '确认?';
+    button.textContent = `删掉「${label}」?`;
     button.title = '再点一次确认删除';
     button.classList.add('armed');
     const timer = setTimeout(disarm, 4000);
@@ -980,7 +978,7 @@ SCENE_JS = r"""
       del.title = '删除';
       del.type = 'button';
       if (item.raw) {
-        armDelete(del, () => deleteRow('POOL.md', item.raw, del));
+        armDelete(del, () => deleteRow('POOL.md', item.raw, del), (item.text || '这条').slice(0, 14));
       } else {
         del.disabled = true;
         del.classList.add('off');
@@ -1058,7 +1056,7 @@ SCENE_JS = r"""
       del.type = 'button';
       del.addEventListener('click', (event) => {
         event.stopPropagation();
-        if (project.raw) armDelete(del, () => deleteRow('SHELF.md', project.raw, del));
+        if (project.raw) armDelete(del, () => deleteRow('SHELF.md', project.raw, del), (project.name || '这个项目').slice(0, 14));
       });
       row.append(del);
       const openNow = () => {
