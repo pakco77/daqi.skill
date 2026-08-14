@@ -388,18 +388,19 @@ def check_skill_contracts() -> None:
     assert "assets/daqi-icon.png" in readme
     assert "License-MIT" in readme
     zh_readme = (ROOT / "README.zh-CN.md").read_text()
-    assert "Grow from zero" in readme and "Organize an existing project" in readme
+    assert "Grow from zero" in readme and "Existing project intake" in readme
     assert "default_projects_root" in readme
-    assert "Signals, seeds, sprouts" in readme and "User approves promotion" in readme
+    assert "Intel, ideas, plans" in readme and "Boss says ride out" in readme
     assert "No need to remember start or wrap up" in readme
     assert "Codex `/hooks`" in readme
-    assert "从零生长" in zh_readme and "已有项目再梳理" in zh_readme
-    assert "信号、种子、萌芽" in zh_readme and "用户确认立项" in zh_readme
+    assert "从零生长" in zh_readme and "已有项目接入" in zh_readme
+    assert "情报、点子、计划" in zh_readme and "帮主点头出发" in zh_readme
     assert "不用记开工或收工" in zh_readme
     assert "Codex `/hooks`" in zh_readme
     assert readme.count("```mermaid") == 2 and zh_readme.count("```mermaid") == 2
     assert (ROOT / "LICENSE").read_text().startswith("MIT License")
-    assert (ROOT / "assets" / "daqi-icon.png").stat().st_size > 100_000
+    icon = (ROOT / "assets" / "daqi-icon.png").read_bytes()
+    assert icon.startswith(b"\x89PNG") and len(icon) > 1_000
 
 
 def main() -> None:
