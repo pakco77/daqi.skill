@@ -260,6 +260,7 @@ SCENE_CSS = r"""
     animation: camp-panel-in 300ms steps(5, end) both;
   }
   .camp-panel[hidden] { display: none; }
+  .camp-panel:focus { outline: none; }
   .camp-panel-ledger, .camp-panel-self { right: 5%; }
   .camp-panel-stable { left: 5%; }
   @keyframes camp-panel-in {
@@ -275,6 +276,7 @@ SCENE_CSS = r"""
   .camp-panel-body { padding: 16px 22px 20px; }
   .camp-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
   .camp-tag {
+    position: relative;
     min-height: 30px;
     padding: 0 10px;
     border: 1px solid #C9C9C2;
@@ -287,11 +289,21 @@ SCENE_CSS = r"""
   .camp-tag:hover { border-color: #111111; }
   .camp-tag[aria-pressed="true"] {
     border-color: #111111;
-    background-color: #E5E5E0;
-    background-image: repeating-conic-gradient(#111111 0 25%, transparent 0 50%);
-    background-size: 6px 6px;
+    padding-left: 25px;
+    background: #111111;
     color: #FAFAF7;
-    text-shadow: 1px 1px #111111;
+  }
+  .camp-tag[aria-pressed="true"]::before {
+    content: "";
+    position: absolute;
+    left: 7px;
+    top: 50%;
+    width: 10px;
+    height: 10px;
+    transform: translateY(-50%);
+    background-color: #FAFAF7;
+    background-image: repeating-conic-gradient(#111111 0 25%, transparent 0 50%);
+    background-size: 4px 4px;
   }
   .camp-list { display: grid; gap: 6px; }
   .camp-entry,
