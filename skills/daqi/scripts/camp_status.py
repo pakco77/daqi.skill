@@ -23,21 +23,12 @@ from __future__ import annotations
 
 import argparse
 import base64
-import hashlib
-import html
-import io
+import json
 import os
 import re
 import sys
 import datetime
 from pathlib import Path
-
-try:
-    from PIL import Image
-
-    HAS_PIL = True
-except ImportError:  # pragma: no cover - degrade gracefully without images
-    HAS_PIL = False
 
 STAGE_ORDER = [("intel", "情报"), ("idea", "点子"), ("plan", "计划")]
 STAGE_TOKENS = {
@@ -64,177 +55,621 @@ BAND_TOKENS = {
     "Stabled": "stabled",
 }
 
-# Grayscale Dither Archive palette
-C_BG = "#F2F2EE"
-C_BG2 = "#E5E5E0"
-C_CARD = "#FAFAF7"
-C_TEXT = "#111111"
-C_TEXT2 = "#72726C"
-C_BORDER = "#C9C9C2"
-C_BLACK = "#050505"
-C_REVERSE = "#F5F5F2"
-
-PAGE_CSS = """
+SCENE_CSS = r"""
   :root { color-scheme: light; }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  * { box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; margin: 0; }
   body {
-    background: %(bg)s; color: %(text)s;
-    font-family: -apple-system, "SF Pro Text", "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", sans-serif;
-    line-height: 1.55; -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+    background: #050505;
+    color: #111111;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
-  .page { max-width: 880px; margin: 0 auto; padding: 40px 24px 56px; }
-  .mono { font-family: ui-monospace, "SF Mono", Menlo, "JetBrains Mono", monospace; letter-spacing: .02em; }
-  .sec { color: %(text2)s; }
-  img.dither { image-rendering: pixelated; display: block; }
-
-  /* --- header --- */
-  .top { display: flex; align-items: center; gap: 16px; padding-bottom: 24px; border-bottom: 1px solid %(border)s; }
-  .top h1 { font-size: 20px; font-weight: 650; letter-spacing: .12em; }
-  .top .meta { font-size: 11px; color: %(text2)s; margin-top: 6px; }
-  .top .mark { width: 56px; height: 56px; border: 1px solid %(border)s; background: %(card)s; }
-
-  /* --- hero: the 10%% black block --- */
-  .hero { display: grid; grid-template-columns: 132px 1fr auto; gap: 28px; align-items: center;
-          background: %(black)s; color: %(reverse)s; padding: 32px 28px; margin-top: 32px; }
-  .hero .kicker { font-size: 10px; letter-spacing: .28em; color: #b9b9b2; margin-bottom: 10px; }
-  .hero h2 { font-size: 40px; font-weight: 700; letter-spacing: .08em; }
-  .hero .sub { color: #d6d6cf; font-size: 13px; margin-top: 8px; }
-  .hero .num { text-align: right; padding-left: 28px; }
-  .hero .num + .num { border-left: 1px solid #3a3a35; }
-  .hero .n { display: block; font-size: 44px; font-weight: 600; line-height: 1; }
-  .hero .l { display: block; font-size: 10px; letter-spacing: .2em; color: #b9b9b2; margin-top: 8px; }
-
-  /* --- sections --- */
-  section { margin-top: 40px; }
-  .sec-head { display: flex; align-items: baseline; justify-content: space-between;
-              border-bottom: 1px solid %(border)s; padding-bottom: 10px; margin-bottom: 20px; }
-  .sec-head h3 { font-size: 15px; font-weight: 650; letter-spacing: .1em; }
-  .sec-head .counts { font-size: 11px; color: %(text2)s; }
-
-  /* --- stage / band counters --- */
-  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .cell { border: 1px solid %(border)s; background: %(card)s; padding: 16px 18px; }
-  .cell .big { font-size: 34px; font-weight: 600; line-height: 1.05; }
-  .cell .lab { font-size: 11px; letter-spacing: .18em; color: %(text2)s; margin-top: 8px; }
-  .cell .note { font-size: 11px; color: %(text2)s; margin-top: 4px; }
-
-  /* --- entries --- */
-  .rows { list-style: none; margin-top: 20px; }
-  .row { display: flex; align-items: baseline; gap: 12px; border: 1px solid %(border)s;
-         background: %(card)s; padding: 12px 14px; }
-  .row + .row { margin-top: 6px; }
-  .row .txt { flex: 1; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .row .when { font-size: 11px; color: %(text2)s; white-space: nowrap; }
-  .badge { font-size: 10px; letter-spacing: .14em; padding: 2px 7px; border: 1px solid %(text)s; white-space: nowrap; }
-  .badge.intel  { background: transparent; }
-  .badge.idea   { color: %(text)s;
-                  background-image: repeating-conic-gradient(%(text)s 0 25%%, transparent 0 50%%);
-                  background-size: 12px 12px; }
-  .badge.plan   { background: %(text)s; color: %(card)s; }
-
-  /* --- stables --- */
-  .proj { display: grid; grid-template-columns: 48px 1fr auto; gap: 14px; align-items: center;
-          border: 1px solid %(border)s; background: %(card)s; padding: 10px 14px; }
-  .proj + .proj { margin-top: 6px; }
-  .proj .thumb { width: 48px; height: 48px; border: 1px solid %(border)s; background: %(bg2)s; }
-  .proj .name { font-size: 13px; font-weight: 600; }
-  .proj .path { font-size: 11px; color: %(text2)s; margin-top: 2px; overflow: hidden;
-                text-overflow: ellipsis; white-space: nowrap; }
-  .proj .meta { text-align: right; font-size: 10px; color: %(text2)s; white-space: nowrap; }
-  .proj .agent { font-size: 11px; color: %(text2)s; margin-top: 4px; }
-
-  /* --- interaction: inversion, checker, disabled --- */
-  button, .hover-inv { transition: none; }
-  .hover-inv:hover { background: %(text)s; color: %(card)s; }
-  .hover-inv:hover .sec { color: #c9c9c2; }
-  .checker { background-image: repeating-conic-gradient(%(text)s 0 25%%, transparent 0 50%%);
-             background-size: 8px 8px; }
-  .off { opacity: .42; }
-  .press:active { color: %(card)s;
-                  background-image: repeating-conic-gradient(%(text)s 0 25%%, transparent 0 50%%);
-                  background-size: 6px 6px; }
-
-  /* --- frame-like motion: outline first, then details; dots develop --- */
-  @keyframes framein { 0%% { opacity: 0; } 20%% { opacity: .2; } 100%% { opacity: 1; } }
-  @keyframes develop { from { opacity: 0; } to { opacity: 1; } }
-  .frame { animation: framein .45s steps(6, end) both; }
-  .frame.d1 { animation-delay: .06s; }
-  .frame.d2 { animation-delay: .14s; }
-  .frame.d3 { animation-delay: .22s; }
-  .reveal { background-color: %(bg2)s;
-            background-image: radial-gradient(%(text)s 1px, transparent 1px);
-            background-size: 14px 14px; }
-  .reveal img { animation: develop .5s steps(8, end) both; }
-  @keyframes dots { 0%% { background-size: 24px 24px; opacity: .35; } 100%% { background-size: 14px 14px; opacity: 1; } }
-
-  /* --- empty state --- */
-  .empty { border: 1px dashed %(border)s; background: %(card)s; padding: 28px 20px;
-           text-align: center; color: %(text2)s; font-size: 13px; }
-
-  footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid %(border)s;
-           font-size: 10px; color: %(text2)s; letter-spacing: .08em; }
-
-  @media (max-width: 640px) {
-    .hero { grid-template-columns: 1fr; }
-    .hero .num { text-align: left; padding-left: 0; }
-    .hero .num + .num { border-left: 0; padding-top: 14px; }
-    .proj { grid-template-columns: 40px 1fr; }
-    .proj .meta { text-align: left; grid-column: 2; }
+  button { font: inherit; }
+  .camp-mono {
+    font-family: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
   }
-""" % {
-    "bg": C_BG,
-    "bg2": C_BG2,
-    "card": C_CARD,
-    "text": C_TEXT,
-    "text2": C_TEXT2,
-    "border": C_BORDER,
-    "black": C_BLACK,
-    "reverse": C_REVERSE,
-}
+  .camp-app {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    min-width: 960px;
+    min-height: 640px;
+    overflow: hidden;
+    isolation: isolate;
+    background: #050505;
+  }
+  .camp-world {
+    position: absolute;
+    inset: 0;
+    transform-origin: 50% 62%;
+    transform: translate(0, 0) scale(1);
+    transition: transform 620ms steps(7, end);
+    will-change: transform;
+  }
+  .camp-scene-image {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    image-rendering: pixelated;
+    transition: opacity 360ms steps(5, end);
+  }
+  .camp-scene-day { opacity: 0; }
+  .camp-app[data-time="day"] .camp-scene-day { opacity: 1; }
+  .camp-app[data-time="day"] .camp-scene-night { opacity: 0; }
+  .camp-app[data-view="ledger"] .camp-world { transform: translate(18%, 1%) scale(1.48); }
+  .camp-app[data-view="stable"] .camp-world { transform: translate(-18%, 1%) scale(1.48); }
+  .camp-app[data-view="self"] .camp-world { transform: translate(0, -9%) scale(1.44); }
+
+  .camp-topbar {
+    position: absolute;
+    z-index: 8;
+    top: 24px;
+    left: 28px;
+    right: 28px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    pointer-events: none;
+  }
+  .camp-brand {
+    color: #F5F5F2;
+    text-shadow: 0 1px #050505;
+  }
+  .camp-app[data-time="day"] .camp-brand { color: #111111; text-shadow: none; }
+  .camp-brand strong {
+    display: block;
+    font-size: 17px;
+    font-weight: 680;
+    letter-spacing: .16em;
+  }
+  .camp-brand span {
+    display: block;
+    margin-top: 5px;
+    font-size: 10px;
+    letter-spacing: .12em;
+    opacity: .72;
+  }
+  .camp-timebox {
+    pointer-events: auto;
+    display: flex;
+    align-items: stretch;
+    border: 1px solid #111111;
+    background: #FAFAF7;
+  }
+  .camp-timebox button {
+    min-width: 48px;
+    min-height: 34px;
+    padding: 0 10px;
+    border: 0;
+    border-right: 1px solid #C9C9C2;
+    background: #FAFAF7;
+    color: #111111;
+    cursor: pointer;
+    font-size: 10px;
+    letter-spacing: .08em;
+  }
+  .camp-timebox button:hover,
+  .camp-timebox button[aria-pressed="true"] {
+    background: #111111;
+    color: #F5F5F2;
+  }
+  .camp-local-time {
+    display: grid;
+    min-width: 82px;
+    place-items: center;
+    padding: 0 10px;
+    color: #72726C;
+    font-size: 10px;
+    letter-spacing: .08em;
+  }
+
+  .camp-feature {
+    position: absolute;
+    z-index: 5;
+    display: grid;
+    gap: 2px;
+    min-width: 146px;
+    padding: 10px 12px;
+    border: 1px solid #C9C9C2;
+    border-radius: 1px;
+    background: #FAFAF7;
+    color: #111111;
+    text-align: left;
+    cursor: pointer;
+    transition: opacity 180ms steps(3, end), background-color 0ms, color 0ms;
+  }
+  .camp-feature:hover,
+  .camp-feature:focus-visible {
+    outline: none;
+    border-color: #111111;
+    background: #111111;
+    color: #F5F5F2;
+  }
+  .camp-feature strong { font-size: 14px; font-weight: 700; letter-spacing: .04em; }
+  .camp-feature span { font-size: 10px; letter-spacing: .1em; opacity: .72; }
+  .camp-feature-ledger { left: 8%; top: 62%; }
+  .camp-feature-self { left: 45%; top: 73%; }
+  .camp-feature-stable { right: 7%; top: 61%; }
+  .camp-app:not([data-view="overview"]) .camp-feature { opacity: 0; pointer-events: none; }
+
+  .camp-fire {
+    position: absolute;
+    z-index: 4;
+    left: 50%;
+    top: 73.5%;
+    width: 34px;
+    height: 48px;
+    transform: translate(-50%, -100%);
+    pointer-events: none;
+    mix-blend-mode: screen;
+  }
+  .camp-flame {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    background: #D9BC72;
+    clip-path: polygon(50% 0, 76% 39%, 66% 100%, 34% 100%, 20% 48%);
+    transform: translateX(-50%);
+    transform-origin: 50% 100%;
+    animation: camp-burn 680ms steps(5, end) infinite alternate;
+  }
+  .camp-flame-a { width: 18px; height: 40px; opacity: .72; }
+  .camp-flame-b { width: 10px; height: 27px; opacity: .95; animation-delay: -240ms; }
+  @keyframes camp-burn {
+    0% { transform: translateX(-50%) scale(.82, .9) skewX(-4deg); }
+    45% { transform: translateX(-50%) scale(1, 1.08) skewX(3deg); }
+    100% { transform: translateX(-50%) scale(.9, .96) skewX(-2deg); }
+  }
+
+  .camp-back {
+    position: absolute;
+    z-index: 10;
+    left: 28px;
+    bottom: 26px;
+    min-height: 36px;
+    padding: 0 13px;
+    border: 1px solid #111111;
+    border-radius: 1px;
+    background: #FAFAF7;
+    color: #111111;
+    cursor: pointer;
+    font-size: 11px;
+  }
+  .camp-back:hover { background: #111111; color: #F5F5F2; }
+  .camp-back[hidden] { display: none; }
+
+  .camp-panel {
+    position: absolute;
+    z-index: 9;
+    top: 15%;
+    width: clamp(420px, 39vw, 560px);
+    max-height: 72vh;
+    overflow: hidden;
+    border: 1px solid #111111;
+    border-radius: 1px;
+    background: #FAFAF7;
+    color: #111111;
+    opacity: 1;
+    transform: translateY(0);
+    animation: camp-panel-in 300ms steps(5, end) both;
+  }
+  .camp-panel[hidden] { display: none; }
+  .camp-panel-ledger, .camp-panel-self { right: 5%; }
+  .camp-panel-stable { left: 5%; }
+  @keyframes camp-panel-in {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .camp-panel-head {
+    padding: 20px 22px 16px;
+    border-bottom: 1px solid #C9C9C2;
+  }
+  .camp-panel-head h2 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: .04em; }
+  .camp-panel-head p { margin: 5px 0 0; color: #72726C; font-size: 11px; letter-spacing: .08em; }
+  .camp-panel-body { padding: 16px 22px 20px; }
+  .camp-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+  .camp-tag {
+    min-height: 30px;
+    padding: 0 10px;
+    border: 1px solid #C9C9C2;
+    border-radius: 1px;
+    background: #FAFAF7;
+    color: #111111;
+    cursor: pointer;
+    font-size: 11px;
+  }
+  .camp-tag:hover { border-color: #111111; }
+  .camp-tag[aria-pressed="true"] {
+    border-color: #111111;
+    background-color: #E5E5E0;
+    background-image: repeating-conic-gradient(#111111 0 25%, transparent 0 50%);
+    background-size: 6px 6px;
+    color: #FAFAF7;
+    text-shadow: 1px 1px #111111;
+  }
+  .camp-list { display: grid; gap: 6px; }
+  .camp-entry,
+  .camp-project {
+    width: 100%;
+    min-height: 54px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 12px;
+    border: 1px solid #C9C9C2;
+    border-radius: 1px;
+    background: #FAFAF7;
+    color: #111111;
+    text-align: left;
+  }
+  .camp-project { cursor: pointer; }
+  .camp-project:hover, .camp-project:focus-visible {
+    outline: none;
+    border-color: #111111;
+    background: #111111;
+    color: #F5F5F2;
+  }
+  .camp-item-title { overflow: hidden; font-size: 13px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+  .camp-item-meta { margin-top: 3px; color: #72726C; font-size: 10px; }
+  .camp-project:hover .camp-item-meta { color: #C9C9C2; }
+  .camp-item-time { color: #72726C; font-size: 10px; white-space: nowrap; }
+  .camp-empty {
+    padding: 26px 16px;
+    border: 1px dashed #C9C9C2;
+    color: #72726C;
+    text-align: center;
+    font-size: 12px;
+  }
+  .camp-pages { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+  .camp-pages button {
+    min-height: 28px;
+    padding: 0 9px;
+    border: 1px solid #C9C9C2;
+    background: #FAFAF7;
+    cursor: pointer;
+    font-size: 10px;
+  }
+  .camp-pages button:hover:not(:disabled) { background: #111111; color: #F5F5F2; }
+  .camp-pages button:disabled { opacity: .4; cursor: default; }
+  .camp-pages span { color: #72726C; font-size: 10px; }
+  .camp-now { display: grid; gap: 12px; }
+  .camp-now section { padding-bottom: 11px; border-bottom: 1px solid #C9C9C2; }
+  .camp-now section:last-child { border-bottom: 0; padding-bottom: 0; }
+  .camp-now h3 { margin: 0 0 5px; color: #72726C; font-size: 10px; font-weight: 600; letter-spacing: .12em; }
+  .camp-now p { margin: 0; font-size: 13px; line-height: 1.55; }
+  .camp-profile { display: grid; gap: 8px; }
+  .camp-trait { display: grid; grid-template-columns: 92px 1fr; gap: 14px; padding: 9px 0; border-bottom: 1px solid #C9C9C2; }
+  .camp-trait dt { color: #72726C; font-size: 11px; }
+  .camp-trait dd { margin: 0; font-size: 13px; }
+  .camp-goals { margin: 14px 0 0; padding: 14px 0 0 18px; border-top: 1px solid #C9C9C2; }
+  .camp-goals li { margin-top: 6px; font-size: 13px; }
+  .camp-notice { margin-top: 14px; color: #72726C; font-size: 10px; }
+  .camp-a11y { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+  @media (max-width: 959px) {
+    body { overflow: auto; }
+    .camp-app { min-width: 0; min-height: 820px; height: auto; }
+    .camp-world { height: 62vw; min-height: 430px; position: relative; }
+    .camp-topbar { position: absolute; top: 14px; left: 14px; right: 14px; }
+    .camp-brand span { display: none; }
+    .camp-feature { min-width: 118px; padding: 8px; }
+    .camp-feature-ledger { left: 3%; top: 43%; }
+    .camp-feature-self { left: 39%; top: 55%; }
+    .camp-feature-stable { right: 3%; top: 43%; }
+    .camp-panel, .camp-panel-ledger, .camp-panel-stable, .camp-panel-self {
+      position: relative;
+      inset: auto;
+      width: calc(100% - 28px);
+      max-height: none;
+      margin: 14px;
+    }
+    .camp-back { position: fixed; left: 14px; bottom: 14px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .camp-world, .camp-scene-image { transition: none; }
+    .camp-panel { animation: none; }
+    .camp-flame { animation: none; }
+  }
+"""
 
 
-# ---------------------------------------------------------------- dithering
+SCENE_JS = r"""
+(() => {
+  const camp = document.querySelector('.camp-app');
+  const payload = JSON.parse(document.getElementById('camp-data').textContent);
+  const panel = camp.querySelector('.camp-panel');
+  const panelTitle = camp.querySelector('.camp-panel-title');
+  const panelSub = camp.querySelector('.camp-panel-sub');
+  const panelBody = camp.querySelector('.camp-panel-body');
+  const backButton = camp.querySelector('[data-action="back"]');
+  const live = camp.querySelector('[aria-live]');
+  const PAGE_SIZE = 5;
+  const storageKey = 'daqi.camp.timeMode';
+  const state = {
+    view: 'overview',
+    stableDepth: 'list',
+    ledgerTag: 'intel',
+    stableTag: 'riding',
+    ledgerPage: 0,
+    stablePage: 0,
+    timeMode: 'auto',
+  };
+  let selectedProject = null;
+
+  try {
+    const saved = localStorage.getItem(storageKey);
+    if (['auto', 'day', 'night'].includes(saved)) state.timeMode = saved;
+  } catch (_) {}
+
+  function make(tag, className, text) {
+    const element = document.createElement(tag);
+    if (className) element.className = className;
+    if (text !== undefined) element.textContent = text;
+    return element;
+  }
+
+  function resolvedTime() {
+    if (state.timeMode !== 'auto') return state.timeMode;
+    const hour = new Date().getHours();
+    return hour >= 6 && hour < 18 ? 'day' : 'night';
+  }
+
+  function renderClock() {
+    camp.querySelector('.camp-local-time').textContent = new Intl.DateTimeFormat([], {
+      hour: '2-digit', minute: '2-digit'
+    }).format(new Date());
+  }
+
+  function addTags(items, selected, onSelect) {
+    const wrap = make('div', 'camp-tags');
+    items.forEach((item) => {
+      const button = make('button', 'camp-tag', `${item.label} ${item.count}`);
+      button.type = 'button';
+      button.setAttribute('aria-pressed', String(item.key === selected));
+      button.addEventListener('click', () => onSelect(item.key));
+      wrap.append(button);
+    });
+    panelBody.append(wrap);
+  }
+
+  function addEmpty(text) {
+    panelBody.append(make('div', 'camp-empty', text));
+  }
+
+  function addPages(total, page, onPage) {
+    const pages = Math.ceil(total / PAGE_SIZE);
+    if (pages <= 1) return;
+    const wrap = make('div', 'camp-pages');
+    const previous = make('button', '', '上一页');
+    const next = make('button', '', '下一页');
+    previous.type = next.type = 'button';
+    previous.disabled = page <= 0;
+    next.disabled = page >= pages - 1;
+    previous.addEventListener('click', () => onPage(page - 1));
+    next.addEventListener('click', () => onPage(page + 1));
+    wrap.append(previous, make('span', 'camp-mono', `${page + 1} / ${pages}`), next);
+    panelBody.append(wrap);
+  }
+
+  function addNotice() {
+    if (!payload.warnings.length) return;
+    panelBody.append(make('div', 'camp-notice', `有 ${payload.warnings.length} 条记录暂时无法读取`));
+  }
+
+  function renderLedger() {
+    panelTitle.textContent = '营地账本';
+    panelSub.textContent = '情报 · 点子 · 计划';
+    const labels = {intel: '情报', idea: '点子', plan: '计划'};
+    const tags = Object.entries(labels).map(([key, label]) => ({
+      key, label, count: payload.ledger.filter((item) => item.stage === key).length
+    }));
+    addTags(tags, state.ledgerTag, (key) => {
+      state.ledgerTag = key;
+      state.ledgerPage = 0;
+      renderState();
+    });
+    const items = payload.ledger.filter((item) => item.stage === state.ledgerTag);
+    if (!items.length) {
+      addEmpty('这个阶段还没有条目');
+      return;
+    }
+    const list = make('div', 'camp-list');
+    items.slice(state.ledgerPage * PAGE_SIZE, (state.ledgerPage + 1) * PAGE_SIZE).forEach((item) => {
+      const row = make('div', 'camp-entry');
+      row.append(make('div', 'camp-item-title', item.text || '未命名条目'));
+      row.append(make('div', 'camp-item-time camp-mono', item.last_seen || '时间未知'));
+      list.append(row);
+    });
+    panelBody.append(list);
+    addPages(items.length, state.ledgerPage, (page) => { state.ledgerPage = page; renderState(); });
+  }
+
+  function renderProjectNow() {
+    panelTitle.textContent = '这票到哪了';
+    panelSub.textContent = selectedProject ? selectedProject.name : '马厩';
+    if (!selectedProject || !selectedProject.now) {
+      addEmpty('还没有可确认的当前进度');
+      return;
+    }
+    const wrap = make('div', 'camp-now');
+    [
+      ['目标', selectedProject.now.goal],
+      ['已验证', selectedProject.now.verified],
+      ['下一步', selectedProject.now.next],
+      ['完成条件', selectedProject.now.done_when],
+    ].forEach(([label, value]) => {
+      const section = make('section');
+      section.append(make('h3', 'camp-mono', label), make('p', '', value));
+      wrap.append(section);
+    });
+    panelBody.append(wrap);
+  }
+
+  function renderStable() {
+    if (state.stableDepth === 'now') {
+      renderProjectNow();
+      return;
+    }
+    panelTitle.textContent = '马厩';
+    panelSub.textContent = '干一票';
+    const definitions = [
+      ['riding', '在跑'], ['week', '7 天没动'], ['month', '30 天没动']
+    ];
+    if (payload.projects.some((item) => item.display_band === 'unknown')) {
+      definitions.push(['unknown', '时间未知']);
+    }
+    const tags = definitions.map(([key, label]) => ({
+      key, label, count: payload.projects.filter((item) => item.display_band === key).length
+    }));
+    addTags(tags, state.stableTag, (key) => {
+      state.stableTag = key;
+      state.stablePage = 0;
+      renderState();
+    });
+    const projects = payload.projects.filter((item) => item.display_band === state.stableTag);
+    if (!projects.length) {
+      addEmpty('这个时间段没有项目');
+      addNotice();
+      return;
+    }
+    const list = make('div', 'camp-list');
+    projects.slice(state.stablePage * PAGE_SIZE, (state.stablePage + 1) * PAGE_SIZE).forEach((project) => {
+      const row = make('button', 'camp-project');
+      row.type = 'button';
+      const main = make('div');
+      main.append(make('div', 'camp-item-title', project.name || '未命名项目'));
+      main.append(make('div', 'camp-item-meta camp-mono', `Agent · ${project.agent || '未知'}`));
+      row.append(main, make('div', 'camp-item-time camp-mono', project.last || '时间未知'));
+      row.addEventListener('click', () => {
+        selectedProject = project;
+        state.stableDepth = 'now';
+        renderState();
+      });
+      list.append(row);
+    });
+    panelBody.append(list);
+    addPages(projects.length, state.stablePage, (page) => { state.stablePage = page; renderState(); });
+    addNotice();
+  }
+
+  function renderProfile() {
+    panelTitle.textContent = '达奇对你的认知';
+    panelSub.textContent = '';
+    if (!payload.profile.traits.length && !payload.profile.goals.length) {
+      addEmpty('现在还认不出你');
+      return;
+    }
+    if (payload.profile.traits.length) {
+      const list = make('dl', 'camp-profile');
+      payload.profile.traits.forEach((item) => {
+        const row = make('div', 'camp-trait');
+        row.append(make('dt', '', item.label), make('dd', '', item.value));
+        list.append(row);
+      });
+      panelBody.append(list);
+    }
+    if (payload.profile.goals.length) {
+      const goals = make('ul', 'camp-goals');
+      payload.profile.goals.forEach((goal) => goals.append(make('li', '', goal)));
+      panelBody.append(goals);
+    }
+  }
+
+  function renderPanel() {
+    panelBody.replaceChildren();
+    panel.className = `camp-panel camp-panel-${state.view}`;
+    if (state.view === 'ledger') renderLedger();
+    if (state.view === 'stable') renderStable();
+    if (state.view === 'self') renderProfile();
+  }
+
+  function renderState() {
+    camp.dataset.view = state.view;
+    camp.dataset.time = resolvedTime();
+    backButton.hidden = state.view === 'overview';
+    panel.hidden = state.view === 'overview';
+    camp.querySelectorAll('.camp-feature').forEach((button) => {
+      button.setAttribute('aria-expanded', String(button.dataset.view === state.view));
+    });
+    camp.querySelectorAll('[data-time-mode]').forEach((button) => {
+      button.setAttribute('aria-pressed', String(button.dataset.timeMode === state.timeMode));
+    });
+    if (state.view !== 'overview') renderPanel();
+    live.textContent = state.view === 'overview' ? '营地全景' : panelTitle.textContent;
+    renderClock();
+  }
+
+  function openView(view) {
+    state.view = view;
+    state.stableDepth = 'list';
+    selectedProject = null;
+    renderState();
+    requestAnimationFrame(() => panel.focus({preventScroll: true}));
+  }
+
+  function goBackOneLevel() {
+    if (state.view === 'stable' && state.stableDepth === 'now') {
+      state.stableDepth = 'list';
+      selectedProject = null;
+    } else if (state.view !== 'overview') {
+      state.view = 'overview';
+    }
+    renderState();
+  }
+
+  camp.querySelectorAll('.camp-feature').forEach((button) => {
+    button.addEventListener('click', () => openView(button.dataset.view));
+  });
+  backButton.addEventListener('click', goBackOneLevel);
+  camp.querySelectorAll('[data-time-mode]').forEach((button) => {
+    button.addEventListener('click', () => {
+      state.timeMode = button.dataset.timeMode;
+      try { localStorage.setItem(storageKey, state.timeMode); } catch (_) {}
+      renderState();
+    });
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && state.view !== 'overview') goBackOneLevel();
+  });
+
+  let wheelTotal = 0;
+  let wheelLocked = false;
+  let wheelTimer;
+  camp.addEventListener('wheel', (event) => {
+    if (event.deltaY <= 0 || state.view === 'overview') return;
+    event.preventDefault();
+    clearTimeout(wheelTimer);
+    wheelTimer = setTimeout(() => { wheelTotal = 0; wheelLocked = false; }, 220);
+    if (wheelLocked) return;
+    wheelTotal += event.deltaY;
+    if (wheelTotal >= 48) {
+      wheelLocked = true;
+      goBackOneLevel();
+    }
+  }, {passive: false});
+
+  setInterval(() => {
+    if (state.timeMode === 'auto') camp.dataset.time = resolvedTime();
+    renderClock();
+  }, 60000);
+  renderState();
+})();
+"""
 
 
-def dither_1bit(img: "Image.Image", size: int | None = None) -> "Image.Image":
-    g = img.convert("L")
-    if size:
-        g = g.resize((size, size), Image.LANCZOS)
-    return g.convert("1", dither=Image.FLOYDSTEINBERG)
+# ------------------------------------------------------------------ assets
 
 
-def dither_4gray_bayer(img: "Image.Image", size: int | None = None) -> "Image.Image":
-    g = img.convert("L")
-    if size:
-        g = g.resize((size, size), Image.LANCZOS)
-    bayer = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]
-    out = Image.new("L", g.size)
-    gp, op = g.load(), out.load()
-    for y in range(g.height):
-        for x in range(g.width):
-            v = gp[x, y] * (3.0 / 255.0) + bayer[y % 4][x % 4] / 16.0
-            op[x, y] = min(3, int(v)) * 85
-    return out
-
-
-def png_data_uri(img: "Image.Image") -> str:
-    buf = io.BytesIO()
-    img.save(buf, format="PNG", optimize=True)
-    return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
-
-
-def load_icon() -> "Image.Image | None":
-    if not HAS_PIL:
-        return None
-    here = Path(__file__).resolve().parent.parent
-    candidates = (here / "assets" / "daqi-icon.png", here.parent / "assets" / "daqi-icon.png")
-    path = next((c for c in candidates if c.is_file()), None)
-    if path is None:
-        return None
-    try:
-        return Image.open(path)
-    except OSError:
-        return None
+def asset_data_uri(name: str) -> str:
+    path = Path(__file__).resolve().parent.parent / "assets" / name
+    return "data:image/png;base64," + base64.b64encode(path.read_bytes()).decode()
 
 
 # ------------------------------------------------------------------ parsing
@@ -436,198 +871,73 @@ def paths_share_identity(left: Path, right: Path) -> bool:
 # ------------------------------------------------------------------ render
 
 
-def esc(s: str) -> str:
-    return html.escape(s or "", quote=True)
-
-
-def badge_html(stage: str) -> str:
-    return f'<span class="badge {esc(stage)}">{esc(stage)}</span>'
-
-
 def render_html(store: Path, pool: list[dict], projects: list[dict], profile: dict,
-                warnings: list[str], gen_ts: datetime.datetime) -> str:
-    bands: dict[str, list[dict]] = {key: [] for key, _ in BANDS}
-    legacy_band = {"riding": "riding", "week": "loose", "month": "stabled", "unknown": "stabled"}
-    for project in projects:
-        bands[legacy_band[project["display_band"]]].append(project)
-
-    counts = {key: 0 for key, _ in STAGE_ORDER}
-    for e in pool:
-        counts[e["stage"]] += 1
-    total_ideas = sum(counts.values())
-    band_counts = {key: len(bands[key]) for key, _ in BANDS}
-    total_projects = sum(band_counts.values())
-    archive_id = "ARCHIVE_" + hashlib.sha1(str(store).encode()).hexdigest()[:4].upper()
-
-    icon = load_icon()
-    if icon is not None:
-        hero_img = png_data_uri(dither_1bit(icon, 96))
-        thumb_img = png_data_uri(dither_4gray_bayer(icon, 40))
-        mark_img = png_data_uri(dither_1bit(icon, 48))
-    else:
-        hero_img = thumb_img = mark_img = None
-
-    updated = max(
-        (p.stat().st_mtime for p in (store / "POOL.md", store / "SHELF.md") if p.is_file()),
-        default=gen_ts.timestamp(),
-    )
-    updated_s = datetime.datetime.fromtimestamp(updated).strftime("%Y.%m.%d %H:%M")
-
-    hero = (
-        f'<div class="reveal">{hero_img and f"<img class=\"dither\" width=\"96\" height=\"96\" src=\"{hero_img}\" alt=\"dither mark\">"}</div>'
-        if hero_img
-        else f'<div class="checker" style="width:96px;height:96px"></div>'
-    )
-
-    # stage counters
-    stage_cells = []
-    stage_descs = {"intel": "痛点 · 观察 · 先盯着", "idea": "意图 · 假设 · 待养成", "plan": "证据齐了 · 等出发"}
-    for key, label in STAGE_ORDER:
-        stage_cells.append(
-            f'<div class="cell hover-inv press">'
-            f'<div class="big mono">{counts[key]}</div>'
-            f'<div class="lab mono">{esc(label)} / {key.upper()}</div>'
-            f'<div class="note">{stage_descs[key]}</div></div>'
-        )
-
-    # ledger rows
-    pool_rows = ""
-    for e in pool:
-        label = dict(STAGE_ORDER)[e["stage"]]
-        pool_rows += (
-            f'<li class="row"><span class="badge {esc(e["stage"])}">{esc(label)}</span>'
-            f'<span class="txt" title="{esc(e["text"])}">{esc(e["text"])}</span>'
-            f'<span class="when mono">{esc(e["last_seen"]) or "—"}</span></li>'
-        )
-    pool_block = (
-        f'<ul class="rows">{"".join(pool_rows)}</ul>'
-        if pool
-        else '<div class="empty">账本还是空的。说「我发现……」记情报，说「我想做……」记点子。</div>'
-    )
-
-    # band counters + rows
-    band_cells = []
-    band_descs = {"riding": "<3 天活跃", "loose": "3–14 天", "stabled": ">14 天"}
-    for key, label in BANDS:
-        band_cells.append(
-            f'<div class="cell hover-inv press">'
-            f'<div class="big mono">{band_counts[key]}</div>'
-            f'<div class="lab mono">{esc(label)} / {key.upper()}</div>'
-            f'<div class="note">{band_descs[key]}</div></div>'
-        )
-
-    proj_rows = ""
-    for key, label in BANDS:
-        for p in bands[key]:
-            thumb = (
-                f'<div class="thumb"><img class="dither" width="40" height="40" src="{thumb_img}" alt=""></div>'
-                if thumb_img
-                else f'<div class="thumb checker"></div>'
-            )
-            now = p.get("now")
-            now_block = ""
-            if now:
-                now_block = (
-                    '<div class="row"><span class="txt">'
-                    f'目标：{esc(now["goal"])} · 已验证：{esc(now["verified"])} · '
-                    f'下一步：{esc(now["next"])} · 完成条件：{esc(now["done_when"])}'
-                    "</span></div>"
-                )
-            proj_rows += (
-                f'<div class="proj hover-inv">{thumb}'
-                f'<div><div class="name">{esc(p["name"])}</div>'
-                f'<div class="path mono" title="{esc(p["path"])}">{esc(p["path"]) or "—"}</div></div>'
-                f'<div class="meta"><div class="mono">{esc(label)}</div>'
-                f'<div class="agent mono">{esc(p["last"]) or "—"} · {esc(p["agent"]) or "—"}</div></div></div>'
-                f"{now_block}"
-            )
-    shelf_block = (
-        f'<div style="margin-top:20px">{"".join(proj_rows)}</div>'
-        if proj_rows
-        else '<div class="empty">马厩还是空的。计划成熟后，你说「出发」才会立项目。</div>'
-    )
-
-    warn_block = ""
-    if warnings:
-        warn_block = (
-            '<div class="empty" style="margin-top:20px;text-align:left">'
-            + "".join(f'<div class="mono">{esc(w)}</div>' for w in warnings)
-            + "</div>"
-        )
-
-    if profile["traits"] or profile["goals"]:
-        profile_rows = "".join(
-            f'<li class="row"><strong>{esc(item["label"])}</strong><span class="txt">{esc(item["value"])}</span></li>'
-            for item in profile["traits"]
-        )
-        profile_rows += "".join(
-            f'<li class="row"><strong>长期目标</strong><span class="txt">{esc(goal)}</span></li>'
-            for goal in profile["goals"]
-        )
-        profile_block = f'<ul class="rows">{profile_rows}</ul>'
-        profile_title = "达奇对你的认知"
-    else:
-        profile_title = "现在还认不出你"
-        profile_block = '<div class="empty">档案还没有建立，达奇不会把占位符、聊天印象或未确认推断当成你的档案。</div>'
-
-    mark = mark_img and f'<img class="dither" width="48" height="48" src="{mark_img}" alt="">'
+                      warnings: list[str], gen_ts: datetime.datetime) -> str:
+    """Render one self-contained scene; all user data stays in inert JSON."""
+    payload = {
+        "ledger": pool,
+        "projects": projects,
+        "profile": profile,
+        "warnings": warnings,
+        "generated_at": gen_ts.isoformat(),
+    }
+    payload_json = json.dumps(payload, ensure_ascii=False).replace("</", "<\\/")
+    night = asset_data_uri("camp-night.png")
+    day = asset_data_uri("camp-day.png")
     return f"""<!doctype html>
-<html lang="zh">
+<html lang="zh-CN">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>营地档案 · CAMP ARCHIVE</title>
-<style>{PAGE_CSS}</style>
+<title>达奇营地</title>
+<style>{SCENE_CSS}</style>
 </head>
 <body>
-<div class="page">
-  <header class="top frame">
-    <div class="mark">{mark or ''}</div>
-    <div>
-      <h1>营地档案 <span class="sec mono">CAMP ARCHIVE</span></h1>
-      <div class="meta mono">{archive_id} · UPDATED {updated_s} · STATUS / ACTIVE · READ-ONLY</div>
+<main class="camp-app" data-view="overview" data-time="night">
+  <div class="camp-world" aria-hidden="true">
+    <img class="camp-scene-image camp-scene-night" src="{night}" alt="">
+    <img class="camp-scene-image camp-scene-day" src="{day}" alt="">
+    <div class="camp-fire">
+      <i class="camp-flame camp-flame-a"></i>
+      <i class="camp-flame camp-flame-b"></i>
+    </div>
+  </div>
+
+  <header class="camp-topbar">
+    <div class="camp-brand">
+      <strong>达奇营地</strong>
+      <span class="camp-mono">MONO DITHER ARCHIVE</span>
+    </div>
+    <div class="camp-timebox" aria-label="场景时间">
+      <button type="button" data-action="time-auto" data-time-mode="auto">自动</button>
+      <button type="button" data-action="time-day" data-time-mode="day">白天</button>
+      <button type="button" data-action="time-night" data-time-mode="night">夜晚</button>
+      <span class="camp-local-time camp-mono" aria-label="你的本地时间"></span>
     </div>
   </header>
 
-  <section class="hero frame d1">
-    <div>{hero}</div>
-    <div>
-      <div class="kicker mono">GRAYSCALE DITHER ARCHIVE — 灰阶点阵档案</div>
-      <h2>点子王</h2>
-      <p class="sub">痛点记成情报，点子养出计划。达奇不会背叛你。</p>
-    </div>
-    <div style="display:flex">
-      <div class="num"><span class="n mono">{total_ideas}</span><span class="l mono">IDEAS / 点子</span></div>
-      <div class="num"><span class="n mono">{total_projects}</span><span class="l mono">PROJECTS / 项目</span></div>
-    </div>
-  </section>
+  <button type="button" class="camp-feature camp-feature-ledger" data-view="ledger" aria-expanded="false">
+    <strong>营地账本</strong><span>情报 · 点子 · 计划</span>
+  </button>
+  <button type="button" class="camp-feature camp-feature-self" data-view="self" aria-expanded="false">
+    <strong>火</strong><span>你是谁？</span>
+  </button>
+  <button type="button" class="camp-feature camp-feature-stable" data-view="stable" aria-expanded="false">
+    <strong>马厩</strong><span>干一票</span>
+  </button>
 
-  <section class="frame d1">
-    <div class="sec-head">
-      <h3>账本 <span class="sec mono">POOL</span></h3>
-      <div class="counts mono">情报 {counts["intel"]} · 点子 {counts["idea"]} · 计划 {counts["plan"]} / 共 {total_ideas}</div>
-    </div>
-    <div class="grid">{''.join(stage_cells)}</div>
-    {pool_block}
+  <button type="button" class="camp-back" data-action="back" hidden>返回上一层 ↓</button>
+  <section class="camp-panel" tabindex="-1" aria-labelledby="camp-panel-title" hidden>
+    <header class="camp-panel-head">
+      <h2 class="camp-panel-title" id="camp-panel-title"></h2>
+      <p class="camp-panel-sub"></p>
+    </header>
+    <div class="camp-panel-body"></div>
   </section>
-
-  <section class="frame d2">
-    <div class="sec-head">
-      <h3>马厩 <span class="sec mono">SHELF</span></h3>
-      <div class="counts mono">在跑 {band_counts["riding"]} · 松了 {band_counts["loose"]} · 歇马 {band_counts["stabled"]} / 共 {total_projects}</div>
-    </div>
-    <div class="grid">{''.join(band_cells)}</div>
-    {shelf_block}
-    {warn_block}
-  </section>
-
-  <section class="frame d3">
-    <div class="sec-head"><h3>{profile_title}</h3></div>
-    {profile_block}
-  </section>
-
-  <footer class="mono frame d3">READ-ONLY · 数据来自 {esc(str(store / "POOL.md"))} 与 {esc(str(store / "SHELF.md"))} · 生成于 {gen_ts.strftime("%Y.%m.%d %H:%M:%S")} · 未写入任何 store</footer>
-</div>
+  <div class="camp-a11y" aria-live="polite"></div>
+</main>
+<script type="application/json" id="camp-data">{payload_json}</script>
+<script>{SCENE_JS}</script>
 </body>
 </html>
 """
