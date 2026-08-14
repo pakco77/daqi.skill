@@ -178,11 +178,15 @@ Use progressive commitment as the decision rule: pain points are cheap to captur
 
 ## Camp view (read-only)
 
-`营地` / `盘点` / `清点` (English: `camp` / `count` / `camp view`) renders the camp without writing anything. Load [`references/camp-view.md`](references/camp-view.md), run `scripts/camp_status.py --store $STORE_ROOT`, print its summary verbatim, and give the generated HTML path. The HTML is a derived artifact inside `$STORE_ROOT`; the script reads only POOL.md and SHELF.md and never modifies the stores. Address the user as 点子王 in the camp-view summary.
+`营地` / `盘点` / `清点` (English: `camp` / `count` / `camp view`) renders the camp without writing anything. Load [`references/camp-view.md`](references/camp-view.md), run `scripts/camp_status.py --store $STORE_ROOT`, print its summary verbatim, and give the generated HTML path. The HTML is a derived artifact inside `$STORE_ROOT`; the script reads only POOL.md and SHELF.md and never modifies the stores. Address the user as 点子王 only when an idea moment happens — a new intel, idea, or plan being recorded. That address is the hook and the proof that daqi is present; ordinary status and views stay plain.
 
 ## Scan (点子导入)
 
-`扫描` / `扫点子` (English: `scan`) finds ideas and projects in Agent history **without reading transcripts**. Run `scripts/camp_scan.py --store $STORE_ROOT` to list workspace candidates (read-only); after the user picks one or several, run again with `--select …` — `shallow` reads project context files only, `deep` distills them through the configured daqi brain (`~/.daqi/config.json` or `DAQI_LLM_*` env; no key means automatic shallow). Proposals are shown with a token; only `--commit <token>` writes POOL/SHELF, and projects enter SHELF only through that confirmed commit. Progress prints in chat and renders at `$STORE_ROOT/scan.html` (progress bar + phase view, auto-refreshing).
+`扫描` / `扫点子` (English: `scan`) finds ideas and projects in Agent history **without reading transcripts**. Run `scripts/camp_scan.py --store $STORE_ROOT` to list workspace candidates (read-only); after the user picks one or several, run again with `--select …` — `shallow` reads project context files only, `deep` distills them through the configured daqi brain (`~/.daqi/config.json` or `DAQI_LLM_*` env; no key means automatic shallow). Proposals are shown with a token; only `--commit <token>` writes POOL/SHELF, and projects enter SHELF only through that confirmed commit. Progress prints in chat and renders inside the camp page 扫描 panel.
+
+## MCP interface
+
+`scripts/daqi_mcp.py` exposes the same stores as an MCP stdio server — one daqi brain for every MCP-capable host. Tools: `daqi_record` (the only store-writing tool, user-invoked), `daqi_camp`, `daqi_status`, `daqi_scan`, `daqi_organize_preview`. Scan-commit and organize-apply stay chat-only and user-confirmed. Load [`references/mcp.md`](references/mcp.md) for host configuration and honesty notes.
 
 ## Recording policy
 
@@ -250,7 +254,7 @@ Wrap-up, Chinese:
 
 Camp view, Chinese:
 
-> 点子王，营地清点完毕：情报 X · 点子 Y · 计划 Z；马厩：在跑 A · 松了 B · 歇马 C。档案：~/.daqi/camp.html（只读）。
+> 营地清点完毕：情报 X · 点子 Y · 计划 Z；马厩：在跑 A · 松了 B · 歇马 C。档案：~/.daqi/camp.html（只读）。
 
 Empty first status:
 

@@ -53,6 +53,7 @@
 - **营地页 `~/.daqi/camp.html`**：离线、自包含的单页营地。灰阶点阵档案风格，昼夜两套配色；火焰颗粒、马匹微动、风掠地面；弹窗内滚动、X 删除、扫描分页切换。全营只有火有颜色。
 - **扫描 `camp_scan.py`**：找点子找项目，shallow 免费启发式，deep 走 DeepSeek 大脑（key 在营地页「设置」里填，只落本机 `config.json`）；候选先过目、token 确认才入库。
 - **一键整理 `organize_stable.py`**：从马厩定位项目，高置信度才移动，Medium/Low 留原地，每次移动写 `cleanup-log.md`。
+- **MCP 层 `daqi_mcp.py`**：stdio MCP 服务，五个工具（记情报/点子、营地、状态、扫描、整理预览）——一份逻辑服务所有 MCP 宿主；写账本只有 `daqi_record` 一个入口。
 - **Codex 自动连续性**：一次精确根设置后，不用记开工或收工——Codex 会话自动恢复 NOW、收工自动存档。设置时只需在 Codex `/hooks` 里审核一次三个项目 hook；其余宿主用命令仪式，不吹原生 hook。
 
 ## 数据安全
