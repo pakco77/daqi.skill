@@ -497,7 +497,10 @@ def main(argv: Optional[list[str]] = None) -> int:
                     )
             if pool_lines:
                 pool = (store / "POOL.md").read_text()
-                pool = pool.replace("<空>", "\n".join(pool_lines), 1)
+                if "<空>" in pool:
+                    pool = pool.replace("<空>", "\n".join(pool_lines), 1)
+                else:
+                    pool = pool.rstrip("\n") + "\n" + "\n".join(pool_lines) + "\n"
                 (store / "POOL.md").write_text(pool)
             state["applied"] = now
             tick(store, state, percent=100, log=f"已写入：{len(pool_lines)} 条入账本，项目入马厩")

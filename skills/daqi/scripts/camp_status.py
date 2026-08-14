@@ -667,16 +667,32 @@ SCENE_CSS = r"""
                     border: 2px solid var(--ui-border); white-space: nowrap; }
   .camp-scan-chip.doing { background: var(--ui-ink); color: var(--ui-bg); border-color: var(--ui-ink); }
   .camp-scan-chip.done { color: var(--ui-soft); border-color: var(--ui-border); }
-  .camp-project { grid-template-columns: minmax(0, 1fr) auto auto; }
+  .camp-entry, .camp-project { position: relative; }
+  .camp-entry { padding-right: 46px; }
+  .camp-project { padding-right: 46px; }
+  .camp-item-progress { margin-top: 4px; color: var(--ui-soft); font-size: 10px;
+                        overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 420px; }
+  .camp-item-progress.has-now { color: var(--ui-ink); }
   .camp-del {
+    position: absolute; top: 6px; right: 6px; z-index: 2;
+    min-width: 20px; height: 20px; padding: 0 4px; line-height: 16px;
     border: 2px solid var(--ui-border); border-radius: 0;
     background: var(--ui-bg); color: var(--ui-ink);
-    font-family: var(--camp-px-font); font-size: 10px;
-    padding: 3px 9px; cursor: pointer;
+    font-family: var(--camp-px-font); font-size: 11px; cursor: pointer;
   }
   .camp-del:hover { border-color: var(--ui-ink); }
-  .camp-del.armed { background: var(--ui-ink); color: var(--ui-bg); border-color: var(--ui-ink); }
+  .camp-del.armed { background: var(--ui-ink); color: var(--ui-bg); border-color: var(--ui-ink);
+                    width: auto; padding: 0 8px; }
   .camp-del.off { opacity: .42; cursor: default; }
+  .camp-scan-pages { display: flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap; }
+  .camp-scan-page {
+    min-width: 30px; height: 26px;
+    border: 3px solid var(--ui-border); border-radius: 0;
+    background: var(--ui-bg); color: var(--ui-ink);
+    font-family: var(--camp-px-font); font-size: 11px; cursor: pointer;
+    box-shadow: 2px 2px 0 0 var(--ui-shadow);
+  }
+  .camp-scan-page.on { background: var(--ui-ink); color: var(--ui-bg); border-color: var(--ui-ink); }
   .camp-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
   .camp-tag {
     position: relative;
@@ -903,7 +919,8 @@ SCENE_JS = r"""
   function armDelete(button, run) {
     const disarm = () => {
       clearTimeout(timer);
-      button.textContent = '删除';
+      button.textContent = '×';
+      button.title = '删除';
       button.classList.remove('armed');
       button.removeEventListener('click', runOnce);
     };
@@ -912,7 +929,8 @@ SCENE_JS = r"""
       clearTimeout(timer);
       run();
     };
-    button.textContent = '确认删除?';
+    button.textContent = '确认?';
+    button.title = '再点一次确认删除';
     button.classList.add('armed');
     const timer = setTimeout(disarm, 4000);
     button.addEventListener('click', runOnce);
@@ -958,7 +976,8 @@ SCENE_JS = r"""
       left.append(make('div', 'camp-item-title', item.text || '未命名条目'));
       left.append(make('div', 'camp-item-time camp-mono', item.last_seen || '时间未知'));
       row.append(left);
-      const del = make('button', 'camp-del', '删除');
+      const del = make('button', 'camp-del', '×');
+      del.title = '删除';
       del.type = 'button';
       if (item.raw) {
         armDelete(del, () => deleteRow('POOL.md', item.raw, del));
@@ -1028,8 +1047,14 @@ SCENE_JS = r"""
       const main = make('div');
       main.append(make('div', 'camp-item-title', project.name || '未命名项目'));
       main.append(make('div', 'camp-item-meta camp-mono', `Agent · ${project.agent || '未知'}`));
+      const progress = project.now
+        ? (project.now.next || project.now.goal || '有 NOW 主线')
+        : '无 NOW 主线 — 点开看详情';
+      const progressLine = make('div', `camp-item-progress camp-mono${project.now ? ' has-now' : ''}`, progress);
+      main.append(progressLine);
       row.append(main, make('div', 'camp-item-time camp-mono', project.last || '时间未知'));
-      const del = make('button', 'camp-del', '删除');
+      const del = make('button', 'camp-del', '×');
+      del.title = '删除';
       del.type = 'button';
       del.addEventListener('click', (event) => {
         event.stopPropagation();
@@ -1172,9 +1197,18 @@ SCENE_JS = r"""
         row.append(info);
         list.append(row);
       });
-      addPages(scan.candidates.length, scanPage, (page) => { scanPage = page; renderScan(); });
+      const pages = Math.ceil(scan.candidates.length / SCAN_PAGE_SIZE);
+      if (pages > 1) {
+        const pager = make('div', 'camp-scan-pages');
+        for (let p = 0; p < pages; p += 1) {
+          const btn = make('button', `camp-scan-page${p === scanPage ? ' on' : ''}`, String(p + 1));
+          btn.type = 'button';
+          btn.addEventListener('click', () => { scanPage = p; renderScan(); });
+          pager.append(btn);
+        }
+        panelBody.append(pager);
+      }
       panelBody.append(list);
-      addPages(scan.candidates.length, scanPage, (page) => { scanPage = page; renderScan(); });
       const cmdRow = make('div', 'camp-scan-cmd');
       commandInput = document.createElement('input');
       commandInput.className = 'camp-mono';

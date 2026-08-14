@@ -1,56 +1,96 @@
 <p align="center">
-  <img src="assets/daqi-icon.png" width="220" alt="daqi 达奇">
+  <img src="assets/daqi-icon.png" width="160" alt="daqi 达奇">
 </p>
 
-<h1 align="center">daqi.skill / 达奇.skill</h1>
+<h1 align="center">Daqi / 达奇</h1>
 
-<p align="center"><strong>An idea incubator: pain points become intel, ideas grow into plans. You are the idea king; Daqi holds your ideas.</strong></p>
-
-<p align="center">
-  <a href="README.zh-CN.md">简体中文</a> · English
-</p>
+<p align="center"><strong>An idea incubator. Every idea you have is held for you — Daqi never betrays you.</strong></p>
 
 <p align="center">
   <a href="https://agentskills.io/"><img src="https://img.shields.io/badge/Agent-Skills-252520?style=flat-square" alt="Agent Skills"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-555047?style=flat-square" alt="MIT License"></a>
   <img src="https://img.shields.io/badge/Local--first-777064?style=flat-square" alt="Local-first">
-  <img src="https://img.shields.io/badge/Languages-中文%20%2F%20English-d8ccb2?style=flat-square" alt="Chinese and English">
+  <img src="https://img.shields.io/badge/中文%20%2F%20English-d8ccb2?style=flat-square" alt="中英文">
 </p>
 
-## Who Daqi is
+<p align="center">
+  English · <a href="README.zh-CN.md">简体中文</a>
+</p>
 
-Daqi is Dutch van der Linde from Red Dead Redemption 2 — the gang leader who always has a plan. But this Dutch has one difference: **he never betrays you.**
+---
 
-Every pain point you mention and every idea you toss out goes into the camp ledger. Daqi deduplicates them, grows them, and remembers where each job stands — but **the gang only rides when you say go**. **You are the idea king** — ideas always come from you; Daqi never invents one, never decides for you, he only holds, keeps, and grows each one until it is ready to ride. Data stays local in `~/.daqi`: nothing is uploaded, no full transcripts are read, no secrets are stored.
+## Who this is
 
-## What it does: finer-grained idea incubation
+Daqi is Dutch van der Linde from Red Dead Redemption 2 — the one who always says "I have a plan." Except this Dutch is different: **he never betrays you.**
 
-Not a memory system, not a project tool — a **demand pool + pain-point log**:
+Every pain point you mention and every idea you toss out goes into the camp ledger. He deduplicates them, grows them, and remembers where each job stands. **You are the idea king** — ideas always come from you; Daqi never invents one, never decides for you, he only holds, keeps, and grows each one until it is ready to ride. Everything stays local: nothing is uploaded, your conversations are never read, no secrets are stored.
 
-- **Pain-point log**: “I noticed…” is never lost. Pain points enter the ledger as **intel**; they are watched first, not given invented solutions.
-- **Demand pool**: “I want to build…” becomes an **idea**; recurring pain and verified evidence grow an idea into a **plan**.
-- **Idea to project**: only when you say “ride out” is a project established and folders created. Until then, it waits in the ledger.
+> **One view, the whole camp.** Left: the ledger (intel · idea · plan). Right: the stables, with confirmable current progress from each project's own NOW main line. Center: the fire — your profile.
 
-## Four things in the camp
+<p align="center">
+  <img src="skills/daqi/assets/camp-day.png" width="720" alt="Camp day scene preview">
+  <br><em>The camp · Grayscale Dither Archive (placeholder image; a 30-second demo GIF will replace it)</em>
+</p>
 
-| Camp name | File | Purpose |
-|---|---|---|
-| Camp ledger | `POOL.md` | The demand pool: intel (pain/observation), idea (intent/hypothesis), plan (evidence gathered) |
-| Your profile | `SELF.md` | Only stable preferences that change how Agents collaborate (max 12 entries) |
-| Stables | `SHELF.md` | Index of projects already riding: path, activity, last Agent |
-| Where this job stands | `NOW.md` | The single hot state per project: goal, verified now, next, done when |
+## Scenes
 
-The profile is operational, not biographical. Age is stored only as an explicitly provided, useful age band—never inferred, and never as a birthday or identity record.
+| Your situation | What Daqi does |
+|---|---|
+| Too many ideas, gone in a blink | Say "I want to build…" → an idea lands in the ledger; "I noticed…" → pain logged as intel |
+| Switched Agents, explain everything again | Daqi lives in three files under `~/.daqi`; any Agent with the skill just picks it up |
+| No idea how much is on your plate | "camp" shows everything: intel/idea/plan counts, stables riding/loose/stabled |
+| An idea is ready | Only your "promote" puts it in the stables, creates folders, writes the main line |
+| Folders are a mess | "organize <project>" → read-only inventory → a plan → nothing moves until you say so; every move is logged, nothing is deleted |
+| Old projects buried in Agent history | "scan" sweeps DSH / Claude Code / Codex session metadata (cwd + timestamps only, **never transcripts**), deep-reads your selection, and finds both ideas and projects |
+| Where does that job stand? | Every project carries its NOW main line: goal, verified now, next, done when — confirmable and handoff-ready |
 
-## Who it is for
+## Core features
 
-- People with lots of ideas and scattered pain points, whose ideas get lost or promoted too early;
-- People who switch between Agents and keep re-explaining everything;
-- People who want a companion that remembers every idea but never decides for them.
+- **Camp ledger `POOL.md`** — the demand pool: intel (pain) → idea (intent) → plan (evidence gathered) → your go.
+- **Stables `SHELF.md`** — riding / loose rein / stabled project index; each row deletable (double confirm).
+- **Where this job stands `NOW.md`** — the single hot state per project: goal, verified now, next, done when.
+- **Your profile `SELF.md`** — only stable preferences that change collaboration, max 12 entries.
+- **Camp page `~/.daqi/camp.html`** — an offline, self-contained single page in Grayscale Dither Archive style with day/night themes; grain fire, breathing horse, wind over the ground; scrollable panels, × delete, page-switching scan tabs. Only the fire has color.
+- **Scan `camp_scan.py`** — finds ideas and projects; shallow is free, deep distills through the DeepSeek brain (key entered in the page's 设置 panel, written only to local `config.json`); candidates are shown and token-confirmed before anything lands.
+- **One-click organization `organize_stable.py`** — resolves the project from the stables, moves only high-confidence files, writes `cleanup-log.md`, never deletes.
+- **Codex automatic continuity** — after one exact-root setup, Codex restores NOW at session start and checkpoints at stop; other hosts use explicit commands. No unverified native-hook claims.
 
-You do not need it for one-off chats, or when a complete team collaboration system already owns this work.
+## Data security
 
-## Camp language: intel → idea → plan → ride out
+- Everything is local files: three markdown stores plus the camp page. No server, no cloud, no account.
+- Bundled scripts make zero network requests; the scan reads only session `cwd` and timestamps, **never message content**.
+- The API key lives only in `~/.daqi/config.json` (0600); the page's settings panel writes it locally — it never enters chat.
+
+## Privacy & boundaries
+
+- Never stores passwords, keys, tokens, IDs, exact addresses, financial/medical/family details, third-party data, or transcripts.
+- Never promotes, deletes, or merges Git repos automatically; deletions always ask twice.
+- Deep reads only project documents (NOW/README/docs); how deep is up to you.
+
+## Install
+
+```text
+Install daqi.Skill: npx skills add pakco77/daqi.skill
+Install daqi, context-fold, and project-fold. Verify that daqi is discoverable, then tell me whether I need to start a new session.
+```
+
+Exact snippets for Codex / Claude Code / Hermes / Kimi / Qwen / WorkBuddy live in the [compatibility guide](skills/daqi/references/agent-compatibility.md). First use asks two things: management language, and where new projects should live (`default_projects_root`) — "help me choose" or "later" are fine.
+
+## Invoke
+
+```text
+Daqi: I want to build...   idea → ledger
+Daqi: I noticed...         pain → intel
+Daqi: promote              plan → project (only your call)
+Daqi: camp                 one view of everything (renders ~/.daqi/camp.html)
+Daqi: scan                 find ideas and projects in Agent history
+Daqi: organize <project>   one-click folder organization (plan first)
+Daqi: start / project progress / wrap up
+```
+
+“I noticed…” starts as intel; “I want to build…” starts as an idea; evidence grows an idea into a plan; only your “promote / ride out” establishes the project.
+
+## How ideas grow into projects
 
 ```mermaid
 mindmap
@@ -88,8 +128,6 @@ mindmap
         Approved and existing projects
       Where this job stands NOW
         Sole current state and next step
-      Word HANDOFF
-        Legacy import only
     Basis
       Progressive commitment
         Do not organize a passing thought
@@ -100,163 +138,6 @@ mindmap
       Low friction
         Log first, organize later
 ```
-
-This is an idea decision rule, not a psychological taxonomy. Pain is intel, thoughts are ideas, evidence turns an idea into a plan, and only you can say ride out. Existing projects do not repeat the growth path: Daqi recovers their real state first, then manages them after confirmation.
-
-## Install
-
-Send the matching prompt to the Agent you are using.
-
-Recommended command:
-
-```text
-Install daqi.Skill: npx skills add pakco77/daqi.skill
-Install daqi, context-fold, and project-fold. Verify that daqi is discoverable, then tell me whether I need to start a new session.
-```
-
-The installer lets you select the Skills and the Agents that need them. On one machine, select several Agents in the installer when needed. Avoid `--agent '*'` by default: it installs into every Agent directory supported by the CLI. Start a new session or restart any Agent that has not rescanned its Skills.
-
-<details>
-<summary>Codex</summary>
-
-```text
-Install daqi.Skill: npx skills add pakco77/daqi.skill --skill daqi --skill context-fold --skill project-fold --agent codex --global --yes
-Verify that daqi is discoverable, then tell me whether I need to start a new session.
-```
-</details>
-
-<details>
-<summary>Claude Code</summary>
-
-```text
-Install daqi.Skill: npx skills add pakco77/daqi.skill --skill daqi --skill context-fold --skill project-fold --agent claude-code --global --yes
-Verify that daqi is discoverable, then tell me whether I need to start a new session.
-```
-</details>
-
-<details>
-<summary>Hermes Agent</summary>
-
-```text
-Install daqi.Skill: npx skills add pakco77/daqi.skill --skill daqi --skill context-fold --skill project-fold --agent hermes-agent --global --yes
-Verify that daqi is discoverable, then tell me whether I need to start a new session.
-```
-</details>
-
-<details>
-<summary>Kimi Code CLI</summary>
-
-```text
-Install daqi.Skill: npx skills add pakco77/daqi.skill --skill daqi --skill context-fold --skill project-fold --agent kimi-code-cli --global --yes
-Verify that daqi is discoverable, then tell me whether I need to start a new session.
-```
-</details>
-
-<details>
-<summary>Qwen Code</summary>
-
-```text
-Install daqi.Skill: npx skills add pakco77/daqi.skill --skill daqi --skill context-fold --skill project-fold --agent qwen-code --global --yes
-Verify that daqi is discoverable, then tell me whether I need to start a new session.
-```
-</details>
-
-<details>
-<summary>Other Agent Skills hosts</summary>
-
-```text
-Confirm this host's exact npx skills --agent identifier, then install daqi, context-fold, and project-fold from pakco77/daqi.skill; do not default to --agent '*'.
-Verify that daqi is discoverable, then tell me whether I need to start a new session.
-```
-</details>
-
-<details>
-<summary>WorkBuddy</summary>
-
-```text
-Install daqi, context-fold, and project-fold from pakco77/daqi.skill into WorkBuddy's user-level ~/.workbuddy/skills/ directory. If npx skills writes only to ~/.agents/skills/ or reports that PromptScript does not support global installation, inspect and back up any existing same-name targets before copying the three complete Skill folders.
-Use WorkBuddy's Skill tool to verify that daqi is discovered and loaded, then use `达奇 项目进度` to verify shared-store access and tell me whether I need to start a new session.
-```
-</details>
-
-WorkBuddy dynamically scans `~/.workbuddy/skills/` (discovery and triggering were verified there for the earlier implementation of this same mechanism); after the rename, verify once with `达奇 项目进度`. This verifies the manual workflow, not a native SessionStart hook.
-
-Discovery-only check:
-
-```sh
-npx skills add pakco77/daqi.skill --list
-```
-
-See the [compatibility guide](skills/daqi/references/agent-compatibility.md) for verified host status. On first use, one compact message asks for management language and a default home for new project material; the user may provide a path, ask Daqi to recommend one, or defer it. On Windows, “help me choose” prefers a user-confirmed non-system fixed drive but never falsely promises to avoid `C:` when no suitable alternative exists. Chinese folders and bilingual mapping usually cost slightly more tokens.
-
-## Automatic continuity in Codex
-
-No need to remember start or wrap up after one exact-root setup. In an enrolled project, Codex restores one compact `NOW.md` at session entry. Before a stable final response, the Agent decides from evidence whether nothing changed (`NO_DELTA`), the four action fields should change (`PROPOSE_UPDATE`), or a user-owned choice blocks a truthful checkpoint (`NEEDS_DECISION`). The Stop hook is the only writer.
-
-Setup remains explicit and narrow:
-
-1. Ask Daqi to preview automatic continuity for the exact project root. Preview makes no writes.
-2. Inspect the exact diffs for `NOW.md`, project `.codex/hooks.json`, and the local Git exclude entry when applicable.
-3. Confirm once to apply that unchanged preview.
-4. Open Codex `/hooks` in the project and review exactly the SessionStart, UserPromptSubmit, and Stop hooks.
-
-`CONFIGURED_NEEDS_HOOKS_REVIEW` means configured, not trusted. The adapter never edits global Codex settings. It binds enrollment to the exact real root, invalidates it after a move or copy, serializes concurrent Agents, refuses stale baselines, writes atomically, and preserves supported file metadata or fails closed. `plan` and `bypassPermissions` modes are zero-write. See the [automatic-continuity contract](skills/daqi/references/automatic-continuity.md) for enable, status, conflict, and disable behavior.
-
-## Invoke
-
-```text
-$daqi
-/daqi
-Daqi: start
-Daqi: project progress
-Daqi: I want to build...
-Daqi: I noticed...
-Daqi: promote
-Daqi: camp
-Daqi: scan
-Daqi: organize this existing project /path/to/project
-Daqi: organize <project>
-Daqi: wrap up
-
-达奇：开工
-达奇：项目进度
-达奇：我想做……
-达奇：我发现……
-达奇：出发
-达奇：收工
-```
-
-“I noticed…” is a pain point or observation and starts as intel. “I want to build…” is intent and starts as an idea. Evidence grows an idea into a plan; only your “promote / ride out” establishes the project. The old `mishu` / `秘书` names no longer trigger anything.
-
-## Camp view (read-only)
-
-```text
-Daqi: camp / count / camp view
-```
-
-Daqi renders the camp as one desktop-first viewport. Click the left **Camp ledger** for intel/idea/plan — its **Scan** entry sweeps Agent history for ideas and projects (tick candidates, per-item progress, copy commands). The right **Stables** shows projects, last Agent, and “where this job stands”; the central **Fire** shows the profile you explicitly confirmed in `SELF.md`. Agent attribution appears only in the Stables. Scrolling down or pressing `Esc` returns exactly one level at a time.
-
-Panel components follow Pixel UI: 3px hard borders, square corners, bottom-right hard block shadows, checker selection, with cream/ink monochrome themes switching with day and night (only the fire has color); panels scroll and carry a built-in back button. In the scene, the fire gains grain shift and rising sparks, the horse breathes and twitches its ears, and wind sweeps the ground (dashed streaks) and air (drifting dust).
-
-The page uses the browser's local timezone: 06:00–18:00 resolves to the day scene, otherwise the night scene. Day/night can also be selected manually and survives reloads. Its **Mono Dither UI / Grayscale Dither Archive** system pairs a darkened 1-bit Floyd–Steinberg night scene with a four-level Bayer 4×4 day scene, compact cream paper panels, 1px borders, inverse hovers, and small checker selection marks. The bitmaps stay static: small CSS-only overlay rigs animate the amber fire and smoke, horse head and hoof, hoof dust, treetop sway, and passing ground dust without cloning the full scene. Wheel-forward zooms the pointed scene location from 100% up to 120%; wheel-back first restores 100%, then returns one interaction level. Every ambient animation honors `prefers-reduced-motion`.
-
-The result remains one offline, self-contained `~/.daqi/camp.html`. The generator reads `POOL.md`, `SHELF.md`, optional `SELF.md`, and only the exact `00_Context/NOW.md` below each project path recorded in SHELF. It never searches sibling projects or modifies an input. Generation is rejected if `--out` aliases any input directly, through a symlink, or through a hardlink.
-
-## One-click organization
-
-```text
-Daqi: organize <project>
-```
-
-Resolves the project's real path from SHELF, inventories it read-only, then proposes a minimal move plan (skeleton dirs + high-confidence moves + a keep-for-judgment list). Nothing moves until you confirm; every move is written to `90_History/cleanup-log.md` and nothing is ever deleted.
-
-## Idea scan (idea import)
-
-```text
-Daqi: scan
-```
-
-Scans DSH / Claude Code / Codex session metadata — cwd and timestamps only, **never transcripts** — then lists workspace candidates. Pick one or several; reading is pay-as-you-go (`shallow` is free and heuristic, `deep` distills through the DeepSeek brain with an API key in `~/.daqi/config.json`). Extracted ideas and projects are shown before `--commit` writes anything to the ledger or stables. Progress is always visible: progress lines in chat and a progress bar with phase view at `~/.daqi/scan.html` (auto-refreshing).
 
 ## Local data logic
 
@@ -270,6 +151,8 @@ mindmap
         Stables index
       POOL.md
         Camp ledger
+      camp.html
+        Camp page (generated)
     Project root
       00_Context
         Current truth
@@ -279,20 +162,6 @@ mindmap
         Working documents
       90_History
         Internal history
-      Grow on demand
-        Assets
-        Builds
-        Data
-        References
-    Default home for new projects
-      SELF.default_projects_root
-        User confirmed
-        May be deferred
-      Projects root
-        _Project-Inbox
-          Ownership unknown
-        _Archive
-          Whole retired projects
     Existing projects
       Stay in place
         SHELF keeps real path
@@ -309,44 +178,15 @@ mindmap
         Map, plan, move log
 ```
 
-Only a new project without an explicit root uses the confirmed `default_projects_root`; existing projects stay in place. A normal project starts with only `00_Context`, `10_Source`, `20_Docs`, and `90_History`; other directories appear only when real files need them. Chinese mode saves a complete English-Chinese folder map before any move. Every move is logged; nothing is deleted automatically.
-
-## Repository structure
-
-```text
-daqi.skill/
-├── skills/
-│   ├── daqi/                   # Camp ledger, profile, stables, growth mechanism
-│   │   ├── SKILL.md
-│   │   ├── assets/            # Data templates, icon, and paired day/night dither scenes
-│   │   ├── references/        # Profile, hook, and host contracts
-│   │   └── scripts/           # Install, Codex continuity adapter, and SHELF rebuild
-│   ├── context-fold/          # NOW.md hot-cold context
-│   └── project-fold/          # Minimal folders and reversible moves
-├── tests/                     # Redacted SHELF reconstruction fixtures
-├── docs/                      # Mechanism design docs (mishu-era heritage, mechanism retained)
-├── assets/                    # Public icon
-├── README.md
-├── README.zh-CN.md
-└── LICENSE
-```
-
-## Boundaries
-
-- Bundled scripts make no network requests; content read by an Agent remains subject to that runtime's data policy.
-- Never store passwords, API keys, tokens, identity numbers, exact addresses, financial, medical, family, third-party private information, or full transcripts.
-- Show a rebuilt SHELF candidate before writing it.
-- In enrolled Codex projects, only the exact-root Stop adapter writes managed `NOW.md`; global SELF/SHELF/POOL stores are never changed by that automatic path.
-- Never create a project silently, delete files automatically, or merge Git repositories.
-- Show a move plan first; back up the bilingual folder map in Chinese mode; log every move for reversal.
-
 ## Validate
 
 ```sh
 python3 tests/test_rebuild_shelf.py
 python3 tests/test_checkpoint.py
 python3 tests/test_codex_continuity.py
-npx skills add . --list
+python3 tests/test_camp_status.py
+python3 tests/test_camp_scan.py
+python3 tests/test_organize_stable.py
 ```
 
 ## License
