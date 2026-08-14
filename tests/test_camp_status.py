@@ -483,11 +483,21 @@ def check_counts_and_readonly() -> None:
     assert "transition: transform 520ms cubic-bezier" in html
     assert "translate3d(" in html
     assert "transition: transform 620ms steps" not in html
-    assert "brightness(.46)" in html
+    assert "brightness(.34)" in html
     assert "camp-smoke" in html and "camp-smoke-rise" in html
     assert "camp-ember-light" in html and "camp-ember-pulse" in html
-    assert "camp-horse-motion" in html
-    assert "camp-tree-motion" in html and "camp-wind" in html
+    assert "camp-horse-rig" in html
+    assert "camp-horse-head" in html and "camp-horse-head-dip" in html
+    assert "camp-horse-hoof" in html and "camp-horse-hoof-lift" in html
+    assert "camp-horse-dust" in html and "camp-horse-dust-rise" in html
+    assert "camp-treetop-rig" in html and "camp-treetop-sway" in html
+    assert "camp-wind-dust" in html and "camp-wind-dust-cross" in html
+    assert "camp-motion-layer" not in html
+    assert "cloneNode(false)" not in html
+    assert "camp-zoom-layer" in html
+    assert "--camp-wheel-zoom" in html
+    assert "Math.min(1.2" in html
+    assert "event.deltaY < 0" in html
     assert "#E4B95F" in html and "#FFF0B0" in html
     assert ".camp-panel-self { left: 4%;" in html
     assert ".camp-feature-self { left: calc(50% + 58px);" in html

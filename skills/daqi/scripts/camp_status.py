@@ -72,6 +72,18 @@ SCENE_CSS = r"""
     backface-visibility: hidden;
     contain: layout paint;
   }
+  .camp-zoom-layer {
+    --camp-wheel-zoom: 1;
+    --camp-zoom-x: 50%;
+    --camp-zoom-y: 62%;
+    position: absolute;
+    inset: 0;
+    transform: translateZ(0) scale(var(--camp-wheel-zoom));
+    transform-origin: var(--camp-zoom-x) var(--camp-zoom-y);
+    transition: transform 180ms cubic-bezier(.2, .72, .22, 1);
+    will-change: transform;
+    backface-visibility: hidden;
+  }
   .camp-scene-image {
     position: absolute;
     inset: 0;
@@ -83,7 +95,7 @@ SCENE_CSS = r"""
     transition: opacity 260ms linear;
     backface-visibility: hidden;
   }
-  .camp-scene-night { filter: brightness(.46) contrast(1.16); }
+  .camp-scene-night { filter: brightness(.34) contrast(1.2); }
   .camp-scene-day { opacity: 0; }
   .camp-app[data-time="day"] .camp-scene-day { opacity: 1; }
   .camp-app[data-time="day"] .camp-scene-night { opacity: 0; }
@@ -91,42 +103,138 @@ SCENE_CSS = r"""
   .camp-app[data-view="stable"] .camp-world { transform: translate3d(-18%, 1%, 0) scale(1.48); }
   .camp-app[data-view="self"] .camp-world { transform: translate3d(0, -9%, 0) scale(1.44); }
 
-  .camp-motion-layer {
+  .camp-motion-rig {
+    --camp-rig-ink: rgba(242, 242, 238, .5);
+    --camp-rig-dim: rgba(114, 114, 108, .42);
+    position: absolute;
+    z-index: 3;
     pointer-events: none;
-    opacity: .24;
-    will-change: transform;
-    backface-visibility: hidden;
   }
-  .camp-app[data-time="night"] .camp-motion-layer { filter: brightness(.46) contrast(1.16); }
-  .camp-tree-motion-left {
-    clip-path: polygon(0 0, 31% 0, 28% 72%, 0 83%);
-    transform-origin: 10% 72%;
-    animation: camp-wind-left 4.8s ease-in-out infinite alternate;
+  .camp-app[data-time="day"] .camp-motion-rig {
+    --camp-rig-ink: rgba(17, 17, 17, .58);
+    --camp-rig-dim: rgba(114, 114, 108, .34);
   }
-  .camp-tree-motion-right {
-    clip-path: polygon(72% 0, 100% 0, 100% 83%, 76% 72%);
-    transform-origin: 91% 72%;
-    animation: camp-wind-right 5.4s ease-in-out infinite alternate;
+  .camp-treetop-rig {
+    top: 0;
+    width: 15%;
+    height: 47%;
+    transform-origin: 50% 100%;
+    animation: camp-treetop-sway 4.8s steps(6, end) infinite alternate;
   }
-  .camp-horse-motion {
-    clip-path: polygon(75% 43%, 96% 42%, 97% 79%, 76% 80%);
-    transform-origin: 86% 72%;
-    opacity: .3;
-    animation: camp-horse-shift 5.8s ease-in-out infinite;
+  .camp-treetop-left { left: 0; }
+  .camp-treetop-right { right: 0; animation-duration: 5.6s; animation-delay: -1.7s; }
+  .camp-treetop-rig i {
+    position: absolute;
+    bottom: 0;
+    width: 56%;
+    height: 86%;
+    background-color: var(--camp-rig-dim);
+    background-image: repeating-conic-gradient(var(--camp-rig-ink) 0 25%, transparent 0 50%);
+    background-size: 5px 5px;
+    clip-path: polygon(50% 0, 62% 24%, 57% 24%, 78% 48%, 65% 48%, 96% 75%, 62% 73%, 62% 100%, 39% 100%, 39% 73%, 4% 77%, 34% 48%, 21% 49%, 43% 24%, 37% 24%);
+    opacity: .14;
   }
-  @keyframes camp-wind-left {
-    from { transform: translate3d(-1px, 0, 0) skewX(-.08deg); }
-    to { transform: translate3d(2px, 0, 0) skewX(.16deg); }
+  .camp-treetop-rig i:nth-child(1) { left: -8%; height: 96%; }
+  .camp-treetop-rig i:nth-child(2) { left: 34%; height: 72%; bottom: -3%; }
+  .camp-treetop-right i:nth-child(1) { left: 42%; }
+  .camp-treetop-right i:nth-child(2) { left: 2%; height: 78%; }
+  @keyframes camp-treetop-sway {
+    from { transform: rotate(-.35deg) translate3d(-1px, 0, 0); }
+    to { transform: rotate(.55deg) translate3d(2px, 0, 0); }
   }
-  @keyframes camp-wind-right {
-    from { transform: translate3d(1px, 0, 0) skewX(.08deg); }
-    to { transform: translate3d(-2px, 0, 0) skewX(-.15deg); }
+
+  .camp-horse-rig {
+    left: 76.5%;
+    top: 49%;
+    width: 16.5%;
+    height: 28%;
   }
-  @keyframes camp-horse-shift {
-    0%, 62%, 100% { transform: translate3d(0, 0, 0) rotate(0); }
-    70% { transform: translate3d(0, 1px, 0) rotate(.08deg); }
-    78% { transform: translate3d(-1px, 0, 0) rotate(-.06deg); }
-    86% { transform: translate3d(0, 1px, 0) rotate(.04deg); }
+  .camp-horse-head {
+    position: absolute;
+    left: 11%;
+    top: 10%;
+    width: 28px;
+    height: 48px;
+    transform-origin: 78% 18%;
+    background-color: var(--camp-rig-dim);
+    background-image: repeating-conic-gradient(var(--camp-rig-ink) 0 25%, transparent 0 50%);
+    background-size: 7px 7px;
+    clip-path: polygon(57% 0, 83% 13%, 100% 39%, 82% 75%, 54% 100%, 11% 85%, 0 58%, 27% 43%, 34% 15%);
+    opacity: .28;
+    animation: camp-horse-head-dip 7.4s steps(8, end) infinite;
+  }
+  .camp-horse-head::before,
+  .camp-horse-head::after {
+    content: "";
+    position: absolute;
+    top: -6px;
+    width: 6px;
+    height: 12px;
+    background: var(--camp-rig-ink);
+    clip-path: polygon(50% 0, 100% 100%, 0 82%);
+  }
+  .camp-horse-head::before { left: 9px; transform: rotate(-8deg); }
+  .camp-horse-head::after { left: 17px; transform: rotate(12deg); }
+  @keyframes camp-horse-head-dip {
+    0%, 45%, 100% { transform: rotate(-3deg) translate3d(0, 0, 0); }
+    58%, 78% { transform: rotate(12deg) translate3d(1px, 5px, 0); }
+    86% { transform: rotate(4deg) translate3d(0, 2px, 0); }
+  }
+  .camp-horse-hoof {
+    position: absolute;
+    right: 27%;
+    bottom: 1%;
+    width: 8px;
+    height: 54px;
+    transform-origin: 50% 8%;
+    border: 1px solid var(--camp-rig-ink);
+    background: var(--camp-rig-dim);
+    clip-path: polygon(18% 0, 88% 0, 72% 78%, 100% 87%, 87% 100%, 8% 100%, 0 86%, 26% 76%);
+    opacity: .66;
+    animation: camp-horse-hoof-lift 6.2s steps(7, end) infinite;
+  }
+  @keyframes camp-horse-hoof-lift {
+    0%, 58%, 100% { transform: rotate(0) translate3d(0, 0, 0); }
+    67%, 76% { transform: rotate(-12deg) translate3d(-2px, -7px, 0); }
+    84% { transform: rotate(-4deg) translate3d(-1px, -2px, 0); }
+  }
+  .camp-horse-dust {
+    position: absolute;
+    right: 19%;
+    bottom: -2%;
+    width: 46px;
+    height: 22px;
+  }
+  .camp-horse-dust i,
+  .camp-wind-dust i {
+    position: absolute;
+    width: 5px;
+    height: 5px;
+    background: var(--camp-rig-ink);
+    opacity: 0;
+  }
+  .camp-horse-dust i { bottom: 2px; animation: camp-horse-dust-rise 6.2s steps(6, end) infinite; }
+  .camp-horse-dust i:nth-child(2) { left: 12px; animation-delay: 80ms; }
+  .camp-horse-dust i:nth-child(3) { left: 25px; animation-delay: 160ms; }
+  @keyframes camp-horse-dust-rise {
+    0%, 72%, 100% { opacity: 0; transform: translate3d(0, 0, 0); }
+    78% { opacity: .55; }
+    92% { opacity: 0; transform: translate3d(14px, -12px, 0) scale(.6); }
+  }
+  .camp-wind-dust {
+    left: 9%;
+    bottom: 6%;
+    width: 72%;
+    height: 18%;
+  }
+  .camp-wind-dust i { bottom: 0; animation: camp-wind-dust-cross 9s steps(12, end) infinite; }
+  .camp-wind-dust i:nth-child(2) { bottom: 24%; animation-delay: -2.2s; }
+  .camp-wind-dust i:nth-child(3) { bottom: 9%; animation-delay: -4.6s; }
+  .camp-wind-dust i:nth-child(4) { bottom: 38%; animation-delay: -6.7s; }
+  @keyframes camp-wind-dust-cross {
+    0% { opacity: 0; transform: translate3d(0, 0, 0); }
+    12%, 68% { opacity: .32; }
+    100% { opacity: 0; transform: translate3d(520px, -16px, 0); }
   }
 
   .camp-topbar {
@@ -456,10 +564,10 @@ SCENE_CSS = r"""
     .camp-back { position: fixed; left: 14px; bottom: 14px; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .camp-world, .camp-scene-image { transition: none; }
+    .camp-world, .camp-zoom-layer, .camp-scene-image { transition: none; }
     .camp-panel { animation: none; }
     .camp-flame, .camp-ember-light, .camp-smoke i { animation: none; }
-    .camp-motion-layer { display: none; }
+    .camp-motion-rig { display: none; }
   }
 """
 
@@ -474,9 +582,7 @@ SCENE_JS = r"""
   const panelBody = camp.querySelector('.camp-panel-body');
   const backButton = camp.querySelector('[data-action="back"]');
   const live = camp.querySelector('[aria-live]');
-  const nightScene = camp.querySelector('.camp-scene-night');
-  const dayScene = camp.querySelector('.camp-scene-day');
-  const motionLayers = [];
+  const zoomLayer = camp.querySelector('.camp-zoom-layer');
   const PAGE_SIZE = 5;
   const storageKey = 'daqi.camp.timeMode';
   const state = {
@@ -489,28 +595,20 @@ SCENE_JS = r"""
     timeMode: 'auto',
   };
   let selectedProject = null;
+  let sceneZoom = 1;
 
-  function installSceneMotion() {
-    const world = camp.querySelector('.camp-world');
-    const fire = camp.querySelector('.camp-fire');
-    [
-      'camp-tree-motion camp-tree-motion-left',
-      'camp-tree-motion camp-tree-motion-right',
-      'camp-horse-motion',
-    ].forEach((classes) => {
-      const layer = nightScene.cloneNode(false);
-      layer.className = `camp-scene-image camp-motion-layer ${classes}`;
-      layer.alt = '';
-      world.insertBefore(layer, fire);
-      motionLayers.push(layer);
-    });
+  function setSceneZoom(next, origin) {
+    sceneZoom = Math.round(Math.min(1.2, Math.max(1, next)) * 100) / 100;
+    if (origin) {
+      zoomLayer.style.setProperty('--camp-zoom-x', `${origin.x}%`);
+      zoomLayer.style.setProperty('--camp-zoom-y', `${origin.y}%`);
+    }
+    zoomLayer.style.setProperty('--camp-wheel-zoom', sceneZoom);
+    camp.dataset.sceneZoom = sceneZoom.toFixed(2);
   }
 
-  function syncSceneMotion() {
-    const source = camp.dataset.time === 'day' ? dayScene : nightScene;
-    motionLayers.forEach((layer) => {
-      if (layer.src !== source.src) layer.src = source.src;
-    });
+  function resetSceneZoom() {
+    setSceneZoom(1, {x: 50, y: 62});
   }
 
   try {
@@ -703,7 +801,6 @@ SCENE_JS = r"""
   function renderState() {
     camp.dataset.view = state.view;
     camp.dataset.time = resolvedTime();
-    syncSceneMotion();
     backButton.hidden = state.view === 'overview';
     panel.hidden = state.view === 'overview';
     camp.querySelectorAll('.camp-feature').forEach((button) => {
@@ -724,6 +821,7 @@ SCENE_JS = r"""
     state.view = view;
     state.stableDepth = 'list';
     selectedProject = null;
+    resetSceneZoom();
     renderState();
     requestAnimationFrame(() => panel.focus({preventScroll: true}));
   }
@@ -735,6 +833,7 @@ SCENE_JS = r"""
     } else if (state.view !== 'overview') {
       state.view = 'overview';
     }
+    resetSceneZoom();
     renderState();
   }
 
@@ -756,11 +855,38 @@ SCENE_JS = r"""
   let wheelTotal = 0;
   let wheelLocked = false;
   let wheelTimer;
+  function zoomOrigin(event) {
+    const fixed = {
+      ledger: {x: 20, y: 64},
+      stable: {x: 84, y: 61},
+      self: {x: 50, y: 72},
+    };
+    if (fixed[state.view]) return fixed[state.view];
+    const bounds = camp.getBoundingClientRect();
+    return {
+      x: Math.min(100, Math.max(0, (event.clientX - bounds.left) / bounds.width * 100)),
+      y: Math.min(100, Math.max(0, (event.clientY - bounds.top) / bounds.height * 100)),
+    };
+  }
   camp.addEventListener('wheel', (event) => {
-    if (event.deltaY <= 0 || state.view === 'overview') return;
-    event.preventDefault();
     clearTimeout(wheelTimer);
     wheelTimer = setTimeout(() => { wheelTotal = 0; wheelLocked = false; }, 220);
+    if (event.deltaY < 0) {
+      event.preventDefault();
+      wheelTotal = 0;
+      wheelLocked = false;
+      const step = Math.min(.04, Math.max(.008, Math.abs(event.deltaY) / 800));
+      setSceneZoom(sceneZoom + step, zoomOrigin(event));
+      return;
+    }
+    if (event.deltaY === 0) return;
+    if (sceneZoom > 1) {
+      event.preventDefault();
+      setSceneZoom(sceneZoom - Math.min(.04, Math.max(.008, Math.abs(event.deltaY) / 800)));
+      return;
+    }
+    if (state.view === 'overview') return;
+    event.preventDefault();
     if (wheelLocked) return;
     wheelTotal += event.deltaY;
     if (wheelTotal >= 48) {
@@ -772,11 +898,10 @@ SCENE_JS = r"""
   setInterval(() => {
     if (state.timeMode === 'auto') {
       camp.dataset.time = resolvedTime();
-      syncSceneMotion();
     }
     renderClock();
   }, 60000);
-  installSceneMotion();
+  resetSceneZoom();
   renderState();
 })();
 """
@@ -1013,14 +1138,26 @@ def render_html(store: Path, pool: list[dict], projects: list[dict], profile: di
 <body>
 <main class="camp-app" data-view="overview" data-time="night">
   <div class="camp-world" aria-hidden="true">
-    <img class="camp-scene-image camp-scene-night" src="{night}" alt="">
-    <img class="camp-scene-image camp-scene-day" src="{day}" alt="">
-    <div class="camp-fire">
-      <div class="camp-smoke"><i></i><i></i><i></i></div>
-      <i class="camp-ember-light"></i>
-      <i class="camp-flame camp-flame-c"></i>
-      <i class="camp-flame camp-flame-a"></i>
-      <i class="camp-flame camp-flame-b"></i>
+    <div class="camp-zoom-layer">
+      <img class="camp-scene-image camp-scene-night" src="{night}" alt="">
+      <img class="camp-scene-image camp-scene-day" src="{day}" alt="">
+
+      <div class="camp-motion-rig camp-treetop-rig camp-treetop-left"><i></i><i></i></div>
+      <div class="camp-motion-rig camp-treetop-rig camp-treetop-right"><i></i><i></i></div>
+      <div class="camp-motion-rig camp-wind-dust"><i></i><i></i><i></i><i></i></div>
+      <div class="camp-motion-rig camp-horse-rig">
+        <i class="camp-horse-head"></i>
+        <i class="camp-horse-hoof"></i>
+        <span class="camp-horse-dust"><i></i><i></i><i></i></span>
+      </div>
+
+      <div class="camp-fire">
+        <div class="camp-smoke"><i></i><i></i><i></i></div>
+        <i class="camp-ember-light"></i>
+        <i class="camp-flame camp-flame-c"></i>
+        <i class="camp-flame camp-flame-a"></i>
+        <i class="camp-flame camp-flame-b"></i>
+      </div>
     </div>
   </div>
 
