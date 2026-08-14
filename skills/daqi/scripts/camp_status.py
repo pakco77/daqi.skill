@@ -49,6 +49,12 @@ STAGE_TOKENS = {
     "plan": "plan",
 }
 BANDS = [("riding", "在跑"), ("loose", "松了"), ("stabled", "歇马")]
+DISPLAY_BANDS = [
+    ("riding", "在跑"),
+    ("week", "7 天没动"),
+    ("month", "30 天没动"),
+    ("unknown", "时间未知"),
+]
 BAND_TOKENS = {
     "在跑": "riding",
     "松了": "loose",
@@ -232,6 +238,77 @@ def load_icon() -> "Image.Image | None":
 
 
 # ------------------------------------------------------------------ parsing
+
+
+def is_placeholder(value: str) -> bool:
+    value = value.strip()
+    return not value or value in {"—", "-", "<空>"} or (
+        value.startswith("<") and value.endswith(">")
+    )
+
+
+def parse_self(text: str) -> dict:
+    result = {"traits": [], "goals": []}
+    section = None
+    for raw in text.splitlines():
+        line = raw.strip()
+        if line.startswith("## "):
+            title = line[3:].strip().lower()
+            section = "traits" if title.startswith(("你的档案", "your profile")) else (
+                "goals" if title in {"长期目标", "long-term goals"} else None
+            )
+            continue
+        if section == "traits" and line.startswith("-"):
+            body = line[1:].strip()
+            parts = re.split(r"[:：]", body, maxsplit=1)
+            if len(parts) == 2 and not is_placeholder(parts[1]):
+                result["traits"].append({"label": parts[0].strip(), "value": parts[1].strip()})
+        elif section == "goals" and line and not line.startswith(">"):
+            value = line.removeprefix("- ").strip()
+            if not is_placeholder(value):
+                result["goals"].append(value)
+    return result
+
+
+NOW_SECTIONS = {
+    "goal": "goal",
+    "verified now": "verified",
+    "next": "next",
+    "done when": "done_when",
+}
+
+
+def parse_now(text: str) -> dict:
+    chunks = {key: [] for key in NOW_SECTIONS.values()}
+    current = None
+    for raw in text.splitlines():
+        line = raw.strip()
+        if line.startswith("## "):
+            current = NOW_SECTIONS.get(line[3:].strip().lower())
+            continue
+        if current and line and not line.startswith("---"):
+            chunks[current].append(line.removeprefix("- ").strip())
+    return {
+        key: " ".join(value) if value and not is_placeholder(" ".join(value)) else ""
+        for key, value in chunks.items()
+    }
+
+
+def classify_activity(value: str, today: datetime.date) -> str:
+    match = re.search(r"\d{4}-\d{2}-\d{2}", value or "")
+    if not match:
+        return "unknown"
+    try:
+        days = (today - datetime.date.fromisoformat(match.group())).days
+    except ValueError:
+        return "unknown"
+    if days < 0:
+        return "unknown"
+    if days < 7:
+        return "riding"
+    if days < 30:
+        return "week"
+    return "month"
 
 
 def parse_pool(text: str) -> tuple[list[dict], list[str]]:
