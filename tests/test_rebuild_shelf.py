@@ -286,6 +286,8 @@ def check_skill_contracts() -> None:
         "计划",
         "营地",
         "盘点",
+        "立项",
+        "扫描",
     ):
         assert trigger in daqi_text
     for scenario in (

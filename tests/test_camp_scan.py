@@ -1,0 +1,137 @@
+"""Agent-history scan (camp_scan.py) contract tests."""
+
+import json
+import os
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+SCRIPT = ROOT / "skills" / "daqi" / "scripts" / "camp_scan.py"
+
+POOL = """---
+schema_version: 3
+---
+
+# POOL —— 营地账本
+
+## 当前情报、点子与计划
+
+<空>
+"""
+
+SHELF = """# SHELF —— 马厩
+
+## 🟢 在跑
+
+| 项目 | 地址 | 最后活跃 | Agent |
+|---|---|---|---|
+"""
+
+
+def run(store: Path, home: Path, *args, check=True):
+    env = dict(os.environ, HOME=str(home), DAQI_LLM_API_KEY="")
+    return subprocess.run(
+        [sys.executable, str(SCRIPT), "--store", str(store), *args],
+        env=env, text=True, capture_output=True, check=check,
+    )
+
+
+def make_fixture() -> tuple[Path, Path, Path, Path]:
+    base = Path(tempfile.mkdtemp(prefix="daqi-scan-"))
+    store, home = base / "store", base / "home"
+    ws1, ws2 = base / "ws1", base / "ws2"
+    store.mkdir()
+    (store / "POOL.md").write_text(POOL)
+    (store / "SHELF.md").write_text(SHELF)
+    (home / ".claude/projects/enc").mkdir(parents=True)
+    (home / ".codex/sessions/2026").mkdir(parents=True)
+    (home / ".dsh/storages").mkdir(parents=True)
+    ws1.mkdir(); ws2.mkdir()
+    (home / ".claude/projects/enc/a.jsonl").write_text(
+        f'{{"cwd":"{ws1}","timestamp":"2026-08-14T10:00:00Z"}}\n'
+    )
+    (home / ".codex/sessions/2026/b.jsonl").write_text(
+        f'{{"cwd":"{ws2}","timestamp":"2026-08-13T09:00:00Z"}}\n'
+    )
+    (home / ".dsh/storages/session_projcache.json").write_text(json.dumps({
+        "tables": {"sessions": {
+            "s1": {"identity": {"cwd": str(ws1), "createdAt": 1786632503721}},
+            "s2": {"identity": {"cwd": str(ws2), "createdAt": 1786546103721}},
+        }}
+    }))
+    (ws1 / "README.md").write_text("# 跨 Agent 复盘器\n想让换 Agent 不再重新解释项目。\n")
+    (ws2 / "NOW.md").write_text("# NOW\n\n## Goal\n\n已立项的演示项目。\n")
+    return store, home, ws1, ws2
+
+
+def check_scan_pipeline() -> None:
+    store, home, ws1, ws2 = make_fixture()
+    pool_bytes = (store / "POOL.md").read_bytes()
+    shelf_bytes = (store / "SHELF.md").read_bytes()
+
+    phase1 = run(store, home)
+    assert phase1.returncode == 0, phase1.stderr
+    assert str(ws1) in phase1.stdout and str(ws2) in phase1.stdout
+    assert "Claude Code" in phase1.stdout and "DSH" in phase1.stdout
+    assert "发现 2 个工作区" in phase1.stdout
+    assert "单选/多选" in phase1.stdout
+    # phase 1 must not touch stores
+    assert (store / "POOL.md").read_bytes() == pool_bytes
+    assert (store / "SHELF.md").read_bytes() == shelf_bytes
+    html = (store / "scan.html").read_text()
+    assert "SCAN PROCESS" in html and "1.5" in html  # auto-refresh
+    state = json.loads((store / ".scan-state.json").read_text())
+    assert state["phase"] in ("scan", "select") and len(state["candidates"]) == 2
+
+    selected = run(store, home, "--select", "ws1,ws2")
+    assert selected.returncode == 0, selected.stderr
+    assert "[idea]" in selected.stdout and "跨 Agent 复盘器" in selected.stdout
+    assert "[project]" in selected.stdout and "ws2" in selected.stdout
+    token = [l for l in selected.stdout.splitlines() if l.startswith("token:")][0].split()[1]
+
+    bad = run(store, home, "--select", "ws1,ws2", "--commit", "deadbeef", check=False)
+    assert bad.returncode == 2
+
+    committed = run(store, home, "--select", "ws1,ws2", "--commit", token)
+    assert committed.returncode == 0, committed.stderr
+    assert "100%" in committed.stdout
+    assert "阶段：点子｜跨 Agent 复盘器" in (store / "POOL.md").read_text()
+    assert "| ws2 |" in (store / "SHELF.md").read_text() and "| scan |" in (store / "SHELF.md").read_text()
+
+
+def check_deep_without_key_falls_back() -> None:
+    store, home, ws1, _ = make_fixture()
+    result = run(store, home, "--select", "ws1", "--depth", "deep")
+    assert result.returncode == 0, result.stderr
+    assert "降级为 shallow" in result.stderr or "shallow" in result.stdout
+
+
+def check_missing_store() -> None:
+    store, home, _, _ = make_fixture()
+    (store / "POOL.md").unlink()
+    result = run(store, home, check=False)
+    assert result.returncode == 2 and "营地不完整" in result.stderr
+
+
+def check_no_transcript_reads() -> None:
+    store, home, ws1, _ = make_fixture()
+    trap = home / ".claude/projects/enc/a.jsonl"
+    trap.write_text(f'{{"cwd":"{ws1}","timestamp":"2026-08-14T10:00:00Z","content":"CANARY_SECRET"}}\n')
+    result = run(store, home)
+    assert result.returncode == 0, result.stderr
+    for artifact in ((store / "scan.html").read_text(), (store / ".scan-state.json").read_text(), result.stdout):
+        assert "CANARY_SECRET" not in artifact
+
+
+def main() -> None:
+    check_scan_pipeline()
+    check_deep_without_key_falls_back()
+    check_missing_store()
+    check_no_transcript_reads()
+    print("PASS: scan pipeline, token commit, fallback, readonly, transcript privacy")
+
+
+if __name__ == "__main__":
+    main()

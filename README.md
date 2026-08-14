@@ -211,10 +211,11 @@ Daqi: start
 Daqi: project progress
 Daqi: I want to build...
 Daqi: I noticed...
-Daqi: ride out
+Daqi: promote
 Daqi: camp
+Daqi: scan
 Daqi: organize this existing project /path/to/project
-Daqi: organize stable <project>
+Daqi: organize <project>
 Daqi: wrap up
 
 达奇：开工
@@ -225,7 +226,7 @@ Daqi: wrap up
 达奇：收工
 ```
 
-“I noticed…” is a pain point or observation and starts as intel. “I want to build…” is intent and starts as an idea. Evidence grows an idea into a plan; only your “ride out” establishes the project. The old `mishu` / `秘书` names no longer trigger anything.
+“I noticed…” is a pain point or observation and starts as intel. “I want to build…” is intent and starts as an idea. Evidence grows an idea into a plan; only your “promote / ride out” establishes the project. The old `mishu` / `秘书` names no longer trigger anything.
 
 ## Camp view (read-only)
 
@@ -239,13 +240,21 @@ The page uses the browser's local timezone: 06:00–18:00 resolves to the day sc
 
 The result remains one offline, self-contained `~/.daqi/camp.html`. The generator reads `POOL.md`, `SHELF.md`, optional `SELF.md`, and only the exact `00_Context/NOW.md` below each project path recorded in SHELF. It never searches sibling projects or modifies an input. Generation is rejected if `--out` aliases any input directly, through a symlink, or through a hardlink.
 
-## One-click stable organization
+## One-click organization
 
 ```text
-Daqi: organize stable <project>
+Daqi: organize <project>
 ```
 
 Resolves the project's real path from SHELF, inventories it read-only, then proposes a minimal move plan (skeleton dirs + high-confidence moves + a keep-for-judgment list). Nothing moves until you confirm; every move is written to `90_History/cleanup-log.md` and nothing is ever deleted.
+
+## Idea scan (idea import)
+
+```text
+Daqi: scan
+```
+
+Scans DSH / Claude Code / Codex session metadata — cwd and timestamps only, **never transcripts** — then lists workspace candidates. Pick one or several; reading is pay-as-you-go (`shallow` is free and heuristic, `deep` distills through the DeepSeek brain with an API key in `~/.daqi/config.json`). Extracted ideas and projects are shown before `--commit` writes anything to the ledger or stables. Progress is always visible: progress lines in chat and a progress bar with phase view at `~/.daqi/scan.html` (auto-refreshing).
 
 ## Local data logic
 

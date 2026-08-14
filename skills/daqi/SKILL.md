@@ -101,10 +101,11 @@ Route common suffixes as follows:
 | `项目进度` / `我到哪了` / `状态` | `project progress` / `status` / `where am I` | Read SHELF; report one main line, at most one meaningful drift, and one suggestion |
 | `我想做…` / `记下…` / `有个点子…` | `I want to build…` / `remember…` / `idea…` | Add a new intent or solution hypothesis to POOL as an idea |
 | `我发现…` / `我注意到…` | `I noticed…` / `I found…` | Record a pain point or observation as intel; attach it to a matching idea or plan without regressing that item |
-| `出发` / `出发吧` | `ride out` / `promote` | Only this boss-owned word turns a plan into a project: add one SHELF row and establish minimal context |
-| `营地` / `盘点` / `清点` | `camp` / `count` / `camp view` | Render the read-only camp view: run `scripts/camp_status.py`, print its summary, and give the HTML path |
+| `立项` / `出发` | `promote` / `ride out` | Only this boss-owned word turns a plan into a project: add one SHELF row and establish minimal context |
+| `盘点` / `营地` / `清点` | `camp` / `count` / `camp view` | Render the read-only camp view: run `scripts/camp_status.py`, print its summary, and give the HTML path |
+| `扫描` / `扫点子` | `scan` | Scan Agent history metadata (cwd+timestamps only, never transcripts), list candidates, read the selected workspaces, show proposals, and write POOL/SHELF only after token confirmation |
 | `整理已有项目…` / `接手这个项目…` | `organize this existing project…` / `take over this project…` | Inventory the exact existing root, recover its main line, then propose organization without moving it by default |
-| `整理马厩 <项目名>` | `organize stable <project>` | Resolve the project's real path from SHELF, run `scripts/organize_stable.py` for a read-only plan, apply after one confirmation; every move is logged and nothing is deleted |
+| `整理 <项目名>` / `整理马厩 <项目名>` | `organize <project>` | Resolve the project's real path from SHELF, run `scripts/organize_stable.py` for a read-only plan, apply after one confirmation; every move is logged and nothing is deleted |
 | `收工` / `交接` | `handoff` / `wrap up` | Update project continuity and give one closing feedback line |
 | `整理项目…` | `organize project…` | Call `project-fold` using the selected language |
 
@@ -178,6 +179,10 @@ Use progressive commitment as the decision rule: pain points are cheap to captur
 ## Camp view (read-only)
 
 `营地` / `盘点` / `清点` (English: `camp` / `count` / `camp view`) renders the camp without writing anything. Load [`references/camp-view.md`](references/camp-view.md), run `scripts/camp_status.py --store $STORE_ROOT`, print its summary verbatim, and give the generated HTML path. The HTML is a derived artifact inside `$STORE_ROOT`; the script reads only POOL.md and SHELF.md and never modifies the stores. Address the user as 点子王 in the camp-view summary.
+
+## Scan (点子导入)
+
+`扫描` / `扫点子` (English: `scan`) finds ideas and projects in Agent history **without reading transcripts**. Run `scripts/camp_scan.py --store $STORE_ROOT` to list workspace candidates (read-only); after the user picks one or several, run again with `--select …` — `shallow` reads project context files only, `deep` distills them through the configured daqi brain (`~/.daqi/config.json` or `DAQI_LLM_*` env; no key means automatic shallow). Proposals are shown with a token; only `--commit <token>` writes POOL/SHELF, and projects enter SHELF only through that confirmed commit. Progress prints in chat and renders at `$STORE_ROOT/scan.html` (progress bar + phase view, auto-refreshing).
 
 ## Recording policy
 

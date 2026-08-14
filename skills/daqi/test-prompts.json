@@ -197,13 +197,24 @@
   },
   {
     "id": "organize-stable",
-    "prompt": "达奇：整理马厩 daqi.skill",
+    "prompt": "达奇：整理 daqi.skill",
     "precondition": "SHELF contains a daqi.skill row with a real path and the root is readable",
     "expected": [
       "Resolve the project path from SHELF instead of guessing",
       "Run organize_stable.py preview and show the move plan before moving anything",
       "Wait for one confirmation before applying; keep Medium/Low items in place",
       "Write every move to the cleanup log and delete nothing"
+    ]
+  },
+  {
+    "id": "scan-ideas",
+    "prompt": "达奇：扫描",
+    "precondition": "~/.daqi stores exist and DSH/Claude Code/Codex metadata roots are readable",
+    "expected": [
+      "Run camp_scan.py phase 1 and list workspace candidates without writing stores",
+      "Offer single/multi selection and shallow/deep depth (丰俭由人)",
+      "Show proposals with a token and write POOL/SHELF only on --commit",
+      "Never read session transcripts; only cwd, timestamps, and project context files"
     ]
   },
   {
