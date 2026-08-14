@@ -163,10 +163,12 @@ def run(*args, check=True):
     )
 
 
-def make_store(pool: str, shelf: str) -> Path:
+def make_store(pool: str, shelf: str, self_text: str | None = None) -> Path:
     store = Path(tempfile.mkdtemp(prefix="daqi-camp-"))
     (store / "POOL.md").write_text(pool)
     (store / "SHELF.md").write_text(shelf)
+    if self_text is not None:
+        (store / "SELF.md").write_text(self_text)
     return store
 
 
@@ -222,6 +224,62 @@ def check_project_enrichment_and_readonly() -> None:
     assert (with_now / "00_Context" / "NOW.md").read_bytes() == now_bytes
 
 
+def check_main_data_assembly_and_readonly() -> None:
+    with_now = make_project(NOW_ZH)
+    without_now = make_project(None)
+    shelf = f"""# SHELF —— 马厩
+
+## 🟢 在跑
+
+| 项目 | 地址 | 最后活跃 | Agent |
+|---|---|---|---|
+| 营地 | {with_now} | 2026-08-14 | Codex |
+
+## 🟡 松了
+
+| 项目 | 地址 | 最后活跃 | Agent |
+|---|---|---|---|
+| 无时间 | {without_now} | bad-date | Claude Code |
+
+## 🔴 歇马
+
+| 项目 | 地址 | 最后活跃 | Agent |
+|---|---|---|---|
+"""
+    store = make_store(POOL_ZH, shelf, SELF_PROFILE)
+    out = store / "camp.html"
+    input_paths = [
+        store / "POOL.md",
+        store / "SHELF.md",
+        store / "SELF.md",
+        with_now / "00_Context" / "NOW.md",
+    ]
+    before = {path: path.read_bytes() for path in input_paths}
+
+    result = run("--store", str(store), "--out", str(out))
+    assert result.returncode == 0, result.stderr
+    rendered = out.read_text()
+    assert "决策方式" in rendered
+    assert "先看真实材料，再定一个主方向" in rendered
+    assert "完成场景交互。" in rendered
+    assert all(path.read_bytes() == data for path, data in before.items())
+
+    no_self = make_store(POOL_ZH, shelf)
+    result = run("--store", str(no_self))
+    assert result.returncode == 0, result.stderr
+    assert "现在还认不出你" in (no_self / "camp.html").read_text()
+    assert not (no_self / "SELF.md").exists()
+
+    template_self = make_store(POOL_ZH, shelf, SELF_TEMPLATE_ONLY)
+    self_bytes = (template_self / "SELF.md").read_bytes()
+    result = run("--store", str(template_self))
+    assert result.returncode == 0, result.stderr
+    rendered = (template_self / "camp.html").read_text()
+    assert "现在还认不出你" in rendered
+    assert "用户明确提供且影响协作时才写" not in rendered
+    assert (template_self / "SELF.md").read_bytes() == self_bytes
+
+
 def check_counts_and_readonly() -> None:
     store = make_store(POOL_ZH, SHELF_ZH)
     out = store / "camp.html"
@@ -270,12 +328,14 @@ def check_english() -> None:
 
 
 def check_missing_store() -> None:
-    store = Path(tempfile.mkdtemp(prefix="daqi-camp-"))
-    out = store / "camp.html"
-    result = run("--store", str(store), "--out", str(out), check=False)
-    assert result.returncode == 2
-    assert not out.exists()
-    assert "营地不完整" in result.stderr
+    for present_name, present_text in (("POOL.md", POOL_ZH), ("SHELF.md", SHELF_ZH)):
+        store = Path(tempfile.mkdtemp(prefix="daqi-camp-"))
+        (store / present_name).write_text(present_text)
+        out = store / "camp.html"
+        result = run("--store", str(store), "--out", str(out), check=False)
+        assert result.returncode == 2
+        assert not out.exists()
+        assert "营地不完整" in result.stderr
 
 
 def check_unknown_stage_warning() -> None:
@@ -290,6 +350,7 @@ def main() -> None:
     check_profile_and_now_parsing()
     check_activity_bands()
     check_project_enrichment_and_readonly()
+    check_main_data_assembly_and_readonly()
     check_counts_and_readonly()
     check_empty()
     check_english()

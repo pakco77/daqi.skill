@@ -402,8 +402,13 @@ def badge_html(stage: str) -> str:
     return f'<span class="badge {esc(stage)}">{esc(stage)}</span>'
 
 
-def render_html(store: Path, pool: list[dict], bands: dict[str, list[dict]],
+def render_html(store: Path, pool: list[dict], projects: list[dict], profile: dict,
                 warnings: list[str], gen_ts: datetime.datetime) -> str:
+    bands: dict[str, list[dict]] = {key: [] for key, _ in BANDS}
+    legacy_band = {"riding": "riding", "week": "loose", "month": "stabled", "unknown": "stabled"}
+    for project in projects:
+        bands[legacy_band[project["display_band"]]].append(project)
+
     counts = {key: 0 for key, _ in STAGE_ORDER}
     for e in pool:
         counts[e["stage"]] += 1
@@ -477,12 +482,22 @@ def render_html(store: Path, pool: list[dict], bands: dict[str, list[dict]],
                 if thumb_img
                 else f'<div class="thumb checker"></div>'
             )
+            now = p.get("now")
+            now_block = ""
+            if now:
+                now_block = (
+                    '<div class="row"><span class="txt">'
+                    f'目标：{esc(now["goal"])} · 已验证：{esc(now["verified"])} · '
+                    f'下一步：{esc(now["next"])} · 完成条件：{esc(now["done_when"])}'
+                    "</span></div>"
+                )
             proj_rows += (
                 f'<div class="proj hover-inv">{thumb}'
                 f'<div><div class="name">{esc(p["name"])}</div>'
                 f'<div class="path mono" title="{esc(p["path"])}">{esc(p["path"]) or "—"}</div></div>'
                 f'<div class="meta"><div class="mono">{esc(label)}</div>'
                 f'<div class="agent mono">{esc(p["last"]) or "—"} · {esc(p["agent"]) or "—"}</div></div></div>'
+                f"{now_block}"
             )
     shelf_block = (
         f'<div style="margin-top:20px">{"".join(proj_rows)}</div>'
@@ -497,6 +512,21 @@ def render_html(store: Path, pool: list[dict], bands: dict[str, list[dict]],
             + "".join(f'<div class="mono">{esc(w)}</div>' for w in warnings)
             + "</div>"
         )
+
+    if profile["traits"] or profile["goals"]:
+        profile_rows = "".join(
+            f'<li class="row"><strong>{esc(item["label"])}</strong><span class="txt">{esc(item["value"])}</span></li>'
+            for item in profile["traits"]
+        )
+        profile_rows += "".join(
+            f'<li class="row"><strong>长期目标</strong><span class="txt">{esc(goal)}</span></li>'
+            for goal in profile["goals"]
+        )
+        profile_block = f'<ul class="rows">{profile_rows}</ul>'
+        profile_title = "达奇对你的认知"
+    else:
+        profile_title = "现在还认不出你"
+        profile_block = '<div class="empty">档案还没有建立，达奇不会把占位符、聊天印象或未确认推断当成你的档案。</div>'
 
     mark = mark_img and f'<img class="dither" width="48" height="48" src="{mark_img}" alt="">'
     return f"""<!doctype html>
@@ -549,6 +579,11 @@ def render_html(store: Path, pool: list[dict], bands: dict[str, list[dict]],
     {warn_block}
   </section>
 
+  <section class="frame d3">
+    <div class="sec-head"><h3>{profile_title}</h3></div>
+    {profile_block}
+  </section>
+
   <footer class="mono frame d3">READ-ONLY · 数据来自 {esc(str(store / "POOL.md"))} 与 {esc(str(store / "SHELF.md"))} · 生成于 {gen_ts.strftime("%Y.%m.%d %H:%M:%S")} · 未写入任何 store</footer>
 </div>
 </body>
@@ -559,13 +594,16 @@ def render_html(store: Path, pool: list[dict], bands: dict[str, list[dict]],
 # ------------------------------------------------------------------- main
 
 
-def summarize(store: Path, pool: list[dict], bands: dict[str, list[dict]], out: Path,
+def summarize(store: Path, pool: list[dict], projects: list[dict], out: Path,
               warnings: list[str]) -> str:
     counts = {key: 0 for key, _ in STAGE_ORDER}
     for e in pool:
         counts[e["stage"]] += 1
     total_ideas = sum(counts.values())
-    band_counts = {key: len(bands[key]) for key, _ in BANDS}
+    band_counts = {key: 0 for key, _ in BANDS}
+    legacy_band = {"riding": "riding", "week": "loose", "month": "stabled", "unknown": "stabled"}
+    for project in projects:
+        band_counts[legacy_band[project["display_band"]]] += 1
     total_projects = sum(band_counts.values())
     lines = ["点子王，营地清点完毕："]
     lines.append(
@@ -598,15 +636,18 @@ def main(argv: list[str] | None = None) -> int:
         print(f"营地不完整：需要 {pool_path} 和 {shelf_path}", file=sys.stderr)
         return 2
 
+    gen_ts = datetime.datetime.now()
     pool, warn_pool = parse_pool(pool_path.read_text())
     bands, warn_shelf = parse_shelf(shelf_path.read_text())
-    warnings = warn_pool + warn_shelf
+    self_path = store / "SELF.md"
+    profile = parse_self(self_path.read_text()) if self_path.is_file() else {"traits": [], "goals": []}
+    projects, warn_now = enrich_projects(flatten_projects(bands), gen_ts.date())
+    warnings = warn_pool + warn_shelf + warn_now
 
-    gen_ts = datetime.datetime.now()
-    html_text = render_html(store, pool, bands, warnings, gen_ts)
+    html_text = render_html(store, pool, projects, profile, warnings, gen_ts)
     out.write_text(html_text)
 
-    print(summarize(store, pool, bands, out, warnings))
+    print(summarize(store, pool, projects, out, warnings))
     return 0
 
 
