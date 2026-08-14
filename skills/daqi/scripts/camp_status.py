@@ -66,9 +66,11 @@ SCENE_CSS = r"""
     position: absolute;
     inset: 0;
     transform-origin: 50% 62%;
-    transform: translate(0, 0) scale(1);
-    transition: transform 620ms steps(7, end);
+    transform: translate3d(0, 0, 0) scale(1);
+    transition: transform 520ms cubic-bezier(.2, .72, .22, 1);
     will-change: transform;
+    backface-visibility: hidden;
+    contain: layout paint;
   }
   .camp-scene-image {
     position: absolute;
@@ -78,14 +80,54 @@ SCENE_CSS = r"""
     object-fit: cover;
     object-position: center;
     image-rendering: pixelated;
-    transition: opacity 360ms steps(5, end);
+    transition: opacity 260ms linear;
+    backface-visibility: hidden;
   }
+  .camp-scene-night { filter: brightness(.46) contrast(1.16); }
   .camp-scene-day { opacity: 0; }
   .camp-app[data-time="day"] .camp-scene-day { opacity: 1; }
   .camp-app[data-time="day"] .camp-scene-night { opacity: 0; }
-  .camp-app[data-view="ledger"] .camp-world { transform: translate(18%, 1%) scale(1.48); }
-  .camp-app[data-view="stable"] .camp-world { transform: translate(-18%, 1%) scale(1.48); }
-  .camp-app[data-view="self"] .camp-world { transform: translate(0, -9%) scale(1.44); }
+  .camp-app[data-view="ledger"] .camp-world { transform: translate3d(18%, 1%, 0) scale(1.48); }
+  .camp-app[data-view="stable"] .camp-world { transform: translate3d(-18%, 1%, 0) scale(1.48); }
+  .camp-app[data-view="self"] .camp-world { transform: translate3d(0, -9%, 0) scale(1.44); }
+
+  .camp-motion-layer {
+    pointer-events: none;
+    opacity: .24;
+    will-change: transform;
+    backface-visibility: hidden;
+  }
+  .camp-app[data-time="night"] .camp-motion-layer { filter: brightness(.46) contrast(1.16); }
+  .camp-tree-motion-left {
+    clip-path: polygon(0 0, 31% 0, 28% 72%, 0 83%);
+    transform-origin: 10% 72%;
+    animation: camp-wind-left 4.8s ease-in-out infinite alternate;
+  }
+  .camp-tree-motion-right {
+    clip-path: polygon(72% 0, 100% 0, 100% 83%, 76% 72%);
+    transform-origin: 91% 72%;
+    animation: camp-wind-right 5.4s ease-in-out infinite alternate;
+  }
+  .camp-horse-motion {
+    clip-path: polygon(75% 43%, 96% 42%, 97% 79%, 76% 80%);
+    transform-origin: 86% 72%;
+    opacity: .3;
+    animation: camp-horse-shift 5.8s ease-in-out infinite;
+  }
+  @keyframes camp-wind-left {
+    from { transform: translate3d(-1px, 0, 0) skewX(-.08deg); }
+    to { transform: translate3d(2px, 0, 0) skewX(.16deg); }
+  }
+  @keyframes camp-wind-right {
+    from { transform: translate3d(1px, 0, 0) skewX(.08deg); }
+    to { transform: translate3d(-2px, 0, 0) skewX(-.15deg); }
+  }
+  @keyframes camp-horse-shift {
+    0%, 62%, 100% { transform: translate3d(0, 0, 0) rotate(0); }
+    70% { transform: translate3d(0, 1px, 0) rotate(.08deg); }
+    78% { transform: translate3d(-1px, 0, 0) rotate(-.06deg); }
+    86% { transform: translate3d(0, 1px, 0) rotate(.04deg); }
+  }
 
   .camp-topbar {
     position: absolute;
@@ -175,7 +217,7 @@ SCENE_CSS = r"""
   .camp-feature strong { font-size: 14px; font-weight: 700; letter-spacing: .04em; }
   .camp-feature span { font-size: 10px; letter-spacing: .1em; opacity: .72; }
   .camp-feature-ledger { left: 8%; top: 62%; }
-  .camp-feature-self { left: 45%; top: 73%; }
+  .camp-feature-self { left: calc(50% + 58px); top: 70%; }
   .camp-feature-stable { right: 7%; top: 61%; }
   .camp-app:not([data-view="overview"]) .camp-feature { opacity: 0; pointer-events: none; }
 
@@ -184,28 +226,75 @@ SCENE_CSS = r"""
     z-index: 4;
     left: 50%;
     top: 73.5%;
-    width: 34px;
-    height: 48px;
+    width: 64px;
+    height: 108px;
     transform: translate(-50%, -100%);
     pointer-events: none;
-    mix-blend-mode: screen;
   }
   .camp-flame {
     position: absolute;
     bottom: 0;
     left: 50%;
-    background: #D9BC72;
     clip-path: polygon(50% 0, 76% 39%, 66% 100%, 34% 100%, 20% 48%);
     transform: translateX(-50%);
     transform-origin: 50% 100%;
     animation: camp-burn 680ms steps(5, end) infinite alternate;
   }
-  .camp-flame-a { width: 18px; height: 40px; opacity: .72; }
-  .camp-flame-b { width: 10px; height: 27px; opacity: .95; animation-delay: -240ms; }
+  .camp-flame-a { z-index: 2; width: 24px; height: 52px; background: #E4B95F; opacity: .94; }
+  .camp-flame-b { z-index: 3; width: 12px; height: 34px; background: #FFF0B0; opacity: .98; animation-delay: -240ms; }
+  .camp-flame-c { z-index: 1; width: 34px; height: 29px; background: #B96E32; opacity: .86; animation-delay: -410ms; }
+  .camp-ember-light {
+    position: absolute;
+    z-index: 0;
+    left: 50%;
+    bottom: -8px;
+    width: 92px;
+    height: 38px;
+    transform: translateX(-50%);
+    background-color: rgba(228, 185, 95, .2);
+    background-image: repeating-conic-gradient(rgba(255, 240, 176, .4) 0 25%, transparent 0 50%);
+    background-size: 6px 6px;
+    clip-path: polygon(8% 42%, 25% 17%, 70% 6%, 95% 38%, 78% 83%, 31% 96%);
+    animation: camp-ember-pulse 920ms steps(4, end) infinite alternate;
+  }
   @keyframes camp-burn {
     0% { transform: translateX(-50%) scale(.82, .9) skewX(-4deg); }
     45% { transform: translateX(-50%) scale(1, 1.08) skewX(3deg); }
     100% { transform: translateX(-50%) scale(.9, .96) skewX(-2deg); }
+  }
+  @keyframes camp-ember-pulse {
+    from { opacity: .48; transform: translateX(-50%) scale(.94); }
+    to { opacity: .82; transform: translateX(-50%) scale(1.04); }
+  }
+  .camp-smoke {
+    position: absolute;
+    left: 50%;
+    bottom: 43px;
+    width: 52px;
+    height: 70px;
+    transform: translateX(-50%);
+  }
+  .camp-smoke i {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    width: 13px;
+    height: 18px;
+    border: 1px solid rgba(242, 242, 238, .58);
+    background-color: rgba(201, 201, 194, .42);
+    background-image: repeating-conic-gradient(rgba(242, 242, 238, .68) 0 25%, transparent 0 50%);
+    background-size: 4px 4px;
+    clip-path: polygon(24% 0, 82% 12%, 100% 62%, 67% 100%, 12% 84%, 0 37%);
+    opacity: 0;
+    animation: camp-smoke-rise 2.8s steps(9, end) infinite;
+  }
+  .camp-smoke i:nth-child(2) { animation-delay: -.95s; }
+  .camp-smoke i:nth-child(3) { animation-delay: -1.9s; }
+  @keyframes camp-smoke-rise {
+    0% { opacity: 0; transform: translate3d(-50%, 2px, 0) scale(.7); }
+    18% { opacity: .64; }
+    70% { opacity: .3; }
+    100% { opacity: 0; transform: translate3d(calc(-50% + 11px), -62px, 0) scale(1.55); }
   }
 
   .camp-back {
@@ -242,7 +331,8 @@ SCENE_CSS = r"""
   }
   .camp-panel[hidden] { display: none; }
   .camp-panel:focus { outline: none; }
-  .camp-panel-ledger, .camp-panel-self { right: 5%; }
+  .camp-panel-ledger { right: 5%; }
+  .camp-panel-self { left: 4%; right: auto; top: 13%; width: clamp(380px, 34vw, 500px); }
   .camp-panel-stable { left: 5%; }
   @keyframes camp-panel-in {
     from { opacity: 0; transform: translateY(18px); }
@@ -354,7 +444,7 @@ SCENE_CSS = r"""
     .camp-brand span { display: none; }
     .camp-feature { min-width: 118px; padding: 8px; }
     .camp-feature-ledger { left: 3%; top: 43%; }
-    .camp-feature-self { left: 39%; top: 55%; }
+    .camp-feature-self { left: 54%; top: 55%; }
     .camp-feature-stable { right: 3%; top: 43%; }
     .camp-panel, .camp-panel-ledger, .camp-panel-stable, .camp-panel-self {
       position: relative;
@@ -368,7 +458,8 @@ SCENE_CSS = r"""
   @media (prefers-reduced-motion: reduce) {
     .camp-world, .camp-scene-image { transition: none; }
     .camp-panel { animation: none; }
-    .camp-flame { animation: none; }
+    .camp-flame, .camp-ember-light, .camp-smoke i { animation: none; }
+    .camp-motion-layer { display: none; }
   }
 """
 
@@ -383,6 +474,9 @@ SCENE_JS = r"""
   const panelBody = camp.querySelector('.camp-panel-body');
   const backButton = camp.querySelector('[data-action="back"]');
   const live = camp.querySelector('[aria-live]');
+  const nightScene = camp.querySelector('.camp-scene-night');
+  const dayScene = camp.querySelector('.camp-scene-day');
+  const motionLayers = [];
   const PAGE_SIZE = 5;
   const storageKey = 'daqi.camp.timeMode';
   const state = {
@@ -395,6 +489,29 @@ SCENE_JS = r"""
     timeMode: 'auto',
   };
   let selectedProject = null;
+
+  function installSceneMotion() {
+    const world = camp.querySelector('.camp-world');
+    const fire = camp.querySelector('.camp-fire');
+    [
+      'camp-tree-motion camp-tree-motion-left',
+      'camp-tree-motion camp-tree-motion-right',
+      'camp-horse-motion',
+    ].forEach((classes) => {
+      const layer = nightScene.cloneNode(false);
+      layer.className = `camp-scene-image camp-motion-layer ${classes}`;
+      layer.alt = '';
+      world.insertBefore(layer, fire);
+      motionLayers.push(layer);
+    });
+  }
+
+  function syncSceneMotion() {
+    const source = camp.dataset.time === 'day' ? dayScene : nightScene;
+    motionLayers.forEach((layer) => {
+      if (layer.src !== source.src) layer.src = source.src;
+    });
+  }
 
   try {
     const saved = localStorage.getItem(storageKey);
@@ -586,6 +703,7 @@ SCENE_JS = r"""
   function renderState() {
     camp.dataset.view = state.view;
     camp.dataset.time = resolvedTime();
+    syncSceneMotion();
     backButton.hidden = state.view === 'overview';
     panel.hidden = state.view === 'overview';
     camp.querySelectorAll('.camp-feature').forEach((button) => {
@@ -652,9 +770,13 @@ SCENE_JS = r"""
   }, {passive: false});
 
   setInterval(() => {
-    if (state.timeMode === 'auto') camp.dataset.time = resolvedTime();
+    if (state.timeMode === 'auto') {
+      camp.dataset.time = resolvedTime();
+      syncSceneMotion();
+    }
     renderClock();
   }, 60000);
+  installSceneMotion();
   renderState();
 })();
 """
@@ -885,7 +1007,7 @@ def render_html(store: Path, pool: list[dict], projects: list[dict], profile: di
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>达奇营地</title>
+<title>马掌望台</title>
 <style>{SCENE_CSS}</style>
 </head>
 <body>
@@ -894,6 +1016,9 @@ def render_html(store: Path, pool: list[dict], projects: list[dict], profile: di
     <img class="camp-scene-image camp-scene-night" src="{night}" alt="">
     <img class="camp-scene-image camp-scene-day" src="{day}" alt="">
     <div class="camp-fire">
+      <div class="camp-smoke"><i></i><i></i><i></i></div>
+      <i class="camp-ember-light"></i>
+      <i class="camp-flame camp-flame-c"></i>
       <i class="camp-flame camp-flame-a"></i>
       <i class="camp-flame camp-flame-b"></i>
     </div>
@@ -901,7 +1026,7 @@ def render_html(store: Path, pool: list[dict], projects: list[dict], profile: di
 
   <header class="camp-topbar">
     <div class="camp-brand">
-      <strong>达奇营地</strong>
+      <strong>马掌望台</strong>
       <span class="camp-mono">MONO DITHER ARCHIVE</span>
     </div>
     <div class="camp-timebox" aria-label="场景时间">
