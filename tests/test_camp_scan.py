@@ -99,6 +99,8 @@ def check_scan_pipeline() -> None:
     assert "camp-scan-mini" in camp and "camp-scan-chip" in camp
     # 删除：× 触发 → 居中弹窗确认
     assert 'class="camp-modal"' in camp and "确认删除" in camp and "camp-modal-confirm" in camp
+    # 这票到哪了：深挖 + loading 态
+    assert "深挖" in camp and "深挖中" in camp and "camp-loading-shift" in camp
     state = json.loads((store / ".scan-state.json").read_text())
     assert state["phase"] in ("scan", "select") and len(state["candidates"]) == 2
 

@@ -48,6 +48,9 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/delete":
             self._delete()
             return
+        if self.path == "/deep-dive":
+            self._deep_dive()
+            return
         if self.path != "/set-key":
             self._send(404, {"ok": False})
             return
@@ -110,6 +113,40 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as error:  # delete succeeded; page refresh is best-effort
             print(f"warning: camp refresh failed: {error}", file=sys.stderr)
         self._send(200, {"ok": True})
+
+    def _deep_dive(self) -> None:
+        """Read one project's context deeper and distill findings; display only."""
+        length = int(self.headers.get("Content-Length", 0))
+        try:
+            payload = json.loads(self.rfile.read(length) or b"{}")
+        except json.JSONDecodeError:
+            self._send(400, {"ok": False, "error": "bad json"})
+            return
+        root = Path(str(payload.get("path", "")))
+        if not root.is_dir():
+            self._send(404, {"ok": False, "error": "project dir not found"})
+            return
+        try:
+            sys.path.insert(0, str(Path(__file__).resolve().parent))
+            from camp_scan import call_brain, heuristic, load_config, read_context
+
+            previews = read_context(root, 12000)
+            cfg = load_config(self.store)
+            findings = call_brain(cfg, previews) if cfg["llm"].get("api_key") else []
+            if not findings:
+                findings = heuristic(root, previews)
+            lines = []
+            if previews:
+                files = "、".join(p["file"] for p in previews[:8])
+                lines.append(f"读了 {len(previews)} 份上下文（{files}）：")
+            for f in findings:
+                lines.append(f"[{f.get('type')}] {f.get('title')} — {(f.get('line') or '')[:120]}")
+            if not lines:
+                lines.append("没有读到上下文文件。")
+            text = "\n".join(lines) + "\n（只显示，未写账本。）"
+            self._send(200, {"ok": True, "text": text})
+        except Exception as error:
+            self._send(500, {"ok": False, "error": str(error)})
 
     def log_message(self, *args: object) -> None:
         pass

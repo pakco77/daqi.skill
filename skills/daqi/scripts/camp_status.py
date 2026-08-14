@@ -667,12 +667,22 @@ SCENE_CSS = r"""
                     border: 2px solid var(--ui-border); white-space: nowrap; }
   .camp-scan-chip.doing { background: var(--ui-ink); color: var(--ui-bg); border-color: var(--ui-ink); }
   .camp-scan-chip.done { color: var(--ui-soft); border-color: var(--ui-border); }
+  .camp-scan-cmd button.loading {
+    background-image: repeating-conic-gradient(var(--ui-ink) 0 25%, transparent 0 50%);
+    background-size: 6px 6px;
+    animation: camp-loading-shift .6s steps(4, end) infinite;
+  }
+  @keyframes camp-loading-shift {
+    0% { background-position: 0 0; }
+    100% { background-position: 12px 12px; }
+  }
+  .camp-panel { width: clamp(520px, 46vw, 660px); }
   .camp-entry, .camp-project { position: relative; min-height: 64px; }
   .camp-item-progress { margin-top: 4px; color: var(--ui-soft); font-size: 10px;
                         overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 420px; }
   .camp-item-progress.has-now { color: var(--ui-ink); }
   .camp-del {
-    position: absolute; bottom: 6px; left: 12px; z-index: 2;
+    position: absolute; top: 6px; right: 6px; z-index: 2;
     min-width: 20px; height: 20px; padding: 0 4px; line-height: 16px;
     border: 2px solid var(--ui-border); border-radius: 0;
     background: var(--ui-bg); color: var(--ui-ink);
@@ -995,6 +1005,31 @@ SCENE_JS = r"""
     addPages(items.length, state.ledgerPage, (page) => { state.ledgerPage = page; renderState(); });
   }
 
+  function deepDive(project, button, resultBox) {
+    button.disabled = true;
+    button.classList.add('loading');
+    button.textContent = '深挖中…';
+    fetch('http://127.0.0.1:8799/deep-dive', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: project.path })
+    }).then((r) => r.json()).then((d) => {
+      button.disabled = false;
+      button.classList.remove('loading');
+      button.textContent = '深挖';
+      if (d && d.ok) {
+        resultBox.replaceChildren(make('div', 'camp-item-time camp-mono', d.text));
+      } else {
+        resultBox.replaceChildren(make('div', 'camp-item-time camp-mono', (d && d.error) || '深挖失败'));
+      }
+    }).catch(() => {
+      button.disabled = false;
+      button.classList.remove('loading');
+      button.textContent = '深挖';
+      resultBox.replaceChildren(make('div', 'camp-item-time camp-mono', '桥未启动 — 对达奇说「开桥」'));
+    });
+  }
+
   function renderProjectNow() {
     panelTitle.textContent = '这票到哪了';
     panelSub.textContent = selectedProject ? selectedProject.name : '马厩';
@@ -1014,6 +1049,14 @@ SCENE_JS = r"""
       wrap.append(section);
     });
     panelBody.append(wrap);
+    const diveRow = make('div', 'camp-scan-cmd');
+    const diveBtn = make('button', '', '深挖');
+    diveBtn.type = 'button';
+    const diveResult = make('div', 'camp-scan-head');
+    diveBtn.addEventListener('click', () => deepDive(selectedProject, diveBtn, diveResult));
+    diveRow.append(diveBtn, make('span', 'camp-item-time camp-mono', '读更深一层上下文，只显示、不写账本'));
+    panelBody.append(diveRow);
+    panelBody.append(diveResult);
   }
 
   function renderStable() {

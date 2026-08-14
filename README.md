@@ -28,8 +28,8 @@ Every pain point you mention and every idea you toss out goes into the camp ledg
 > **One view, the whole camp.** Left: the ledger (intel · idea · plan). Right: the stables, with confirmable current progress from each project's own NOW main line. Center: the fire — your profile.
 
 <p align="center">
-  <img src="skills/daqi/assets/camp-day.png" width="720" alt="Camp day scene preview">
-  <br><em>The camp · Grayscale Dither Archive (placeholder image; a 30-second demo GIF will replace it)</em>
+  <img src="assets/daqi-portrait.png" width="384" alt="Daqi · grayscale pixel portrait">
+  <br><em>Daqi · grayscale pixel portrait (a 30-second demo GIF will replace it)</em>
 </p>
 
 ## Scenes

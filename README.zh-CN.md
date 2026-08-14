@@ -28,8 +28,8 @@
 > **营地一眼看全。** 左侧账本（情报 · 点子 · 计划）、右侧马厩（20 匹在跑）、中央火堆（你的档案）——马厩里每一匹都带着可确认的当前进度，来自各项目自己的 NOW 主线。
 
 <p align="center">
-  <img src="skills/daqi/assets/camp-day.png" width="720" alt="营地日景预览">
-  <br><em>营地 · 灰阶点阵档案（占位图；30 秒演示 GIF 之后替换这里）</em>
+  <img src="assets/daqi-portrait.png" width="384" alt="达奇 · 灰度像素肖像">
+  <br><em>达奇 · 灰度像素肖像（30 秒演示 GIF 之后替换这里）</em>
 </p>
 
 ## 场景
