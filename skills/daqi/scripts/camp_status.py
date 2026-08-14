@@ -797,6 +797,7 @@ SCENE_JS = r"""
   const live = camp.querySelector('[aria-live]');
   const zoomLayer = camp.querySelector('.camp-zoom-layer');
   const PAGE_SIZE = 5;
+  const SCAN_PAGE_SIZE = 10;
   const storageKey = 'daqi.camp.timeMode';
   const state = {
     view: 'overview',
@@ -809,6 +810,7 @@ SCENE_JS = r"""
   };
   let selectedProject = null;
   let sceneZoom = 1;
+  let scanPage = 0;
 
   function setSceneZoom(next, origin) {
     sceneZoom = Math.round(Math.min(1.2, Math.max(1, next)) * 100) / 100;
@@ -1058,27 +1060,33 @@ SCENE_JS = r"""
     panelBody.append(phaseRow);
 
     if (Array.isArray(scan.candidates) && scan.candidates.length) {
-      panelBody.append(make('div', 'camp-scan-head', '工作区候选 — 勾选后复制命令，发给达奇'));
+      panelBody.append(make('div', 'camp-scan-head', `工作区候选 — 每页 ${SCAN_PAGE_SIZE} 条，勾选后点「提交」`));
       const list = make('div', 'camp-list');
       const saved = scanSelection();
       let commandInput = null;
       const refreshCommand = () => {
-        const sel = Array.from(list.querySelectorAll('input:checked')).map((i) => i.value);
-        try { localStorage.setItem('daqi.camp.scanSelection', JSON.stringify(sel)); } catch (_) {}
-        if (commandInput) commandInput.value = sel.length ? `达奇：扫描 ${sel.join(',')}` : '达奇：扫描';
+        const paths = Array.from(list.querySelectorAll('input:checked')).map((i) => i.value);
+        try { localStorage.setItem('daqi.camp.scanSelection', JSON.stringify(paths)); } catch (_) {}
+        const nums = paths.map((p) => {
+          const idx = scan.candidates.findIndex((c) => c.path === p);
+          return idx >= 0 ? String(idx + 1) : null;
+        }).filter(Boolean);
+        if (commandInput) commandInput.value = nums.length ? `达奇：扫描 ${nums.join(',')}` : '';
       };
-      scan.candidates.forEach((c, i) => {
+      const pageStart = scanPage * SCAN_PAGE_SIZE;
+      scan.candidates.slice(pageStart, pageStart + SCAN_PAGE_SIZE).forEach((c) => {
+        const num = scan.candidates.findIndex((x) => x.path === c.path) + 1;
         const item = (Array.isArray(scan.items) && scan.items.find((it) => it.path === c.path)) || {};
         const row = make('label', 'camp-scan-row');
         const box = document.createElement('input');
         box.type = 'checkbox';
-        box.value = String(i + 1);
-        box.checked = saved.includes(String(i + 1));
+        box.value = c.path;
+        box.checked = saved.includes(c.path);
         box.addEventListener('change', refreshCommand);
         row.append(box);
         const info = make('div', '');
         const head = make('div', 'camp-scan-head-line');
-        head.append(make('span', 'camp-item-title', `${i + 1}. ${c.path}`));
+        head.append(make('span', 'camp-item-title', `${num}. ${c.path}`));
         if (item.status === 'reading') head.append(make('span', 'camp-scan-chip doing', '读取中'));
         if (item.status === 'done') head.append(make('span', 'camp-scan-chip done', '完成'));
         info.append(head);
@@ -1096,14 +1104,19 @@ SCENE_JS = r"""
         list.append(row);
       });
       panelBody.append(list);
+      addPages(scan.candidates.length, scanPage, (page) => { scanPage = page; renderScan(); });
       const cmdRow = make('div', 'camp-scan-cmd');
       commandInput = document.createElement('input');
       commandInput.className = 'camp-mono';
       commandInput.readOnly = true;
-      const copyBtn = make('button', '', '复制命令');
-      copyBtn.type = 'button';
-      copyBtn.addEventListener('click', () => copyText(commandInput.value, copyBtn));
-      cmdRow.append(commandInput, copyBtn);
+      commandInput.placeholder = '勾选后点「提交」';
+      const submitBtn = make('button', '', '提交');
+      submitBtn.type = 'button';
+      submitBtn.addEventListener('click', () => {
+        if (!commandInput.value) return;
+        copyText(commandInput.value, submitBtn);
+      });
+      cmdRow.append(commandInput, submitBtn);
       panelBody.append(cmdRow);
       refreshCommand();
     }
@@ -1125,7 +1138,7 @@ SCENE_JS = r"""
         tokInput.className = 'camp-mono';
         tokInput.readOnly = true;
         tokInput.value = `camp_scan.py --select ${sel.join(',')} --commit ${scan.token}`;
-        const tokBtn = make('button', '', '复制提交命令');
+        const tokBtn = make('button', '', '提交到账本 / 马厩');
         tokBtn.type = 'button';
         tokBtn.addEventListener('click', () => copyText(tokInput.value, tokBtn));
         tokRow.append(tokInput, tokBtn);
@@ -1169,6 +1182,7 @@ SCENE_JS = r"""
     state.view = view;
     state.stableDepth = 'list';
     selectedProject = null;
+    scanPage = 0;
     resetSceneZoom();
     renderState();
     requestAnimationFrame(() => panel.focus({preventScroll: true}));
