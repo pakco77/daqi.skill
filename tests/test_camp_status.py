@@ -445,7 +445,7 @@ def check_counts_and_readonly() -> None:
 
     result = run("--store", str(store), "--out", str(out))
     assert result.returncode == 0, result.stderr
-    assert "点子王" in result.stdout
+    assert "营地清点完毕" in result.stdout
     assert "情报 2 · 点子 1 · 计划 1" in result.stdout
     assert "在跑 1 · 松了 0 · 歇马 1" in result.stdout
     assert "只读" in result.stdout
