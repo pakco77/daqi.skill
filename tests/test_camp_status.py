@@ -1,5 +1,7 @@
 """Read-only camp view script contract tests."""
 
+import datetime
+import importlib.util
 import subprocess
 import sys
 import tempfile
@@ -7,6 +9,66 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPT = ROOT / "skills" / "daqi" / "scripts" / "camp_status.py"
+
+SPEC = importlib.util.spec_from_file_location("camp_status", SCRIPT)
+camp_status = importlib.util.module_from_spec(SPEC)
+assert SPEC.loader is not None
+SPEC.loader.exec_module(camp_status)
+
+SELF_PROFILE = """---
+management_language: zh
+---
+
+# SELF —— 你的档案
+
+## 你的档案（热区，均为可选）
+
+- 决策方式：先看真实材料，再定一个主方向
+- 质量标准：必须有可观察的完成证据
+- 沟通偏好：结论先说，过程保持紧凑
+- 授权边界：发布和外部写入必须先确认
+
+## 长期目标
+
+- 把点子养到能被真实使用
+
+## 记录规则
+
+- 这段政策文字不能成为用户档案
+"""
+
+SELF_TEMPLATE_ONLY = """## 你的档案（热区，均为可选）
+
+- 行业：<用户明确提供且影响协作时才写>
+- 职业：<用户明确提供且影响协作时才写>
+
+## 长期目标
+
+<只有用户希望跨项目持续携带时才写>
+"""
+
+NOW_ZH = """---
+daqi: 1
+---
+
+# NOW —— 这票到哪了
+
+## Goal
+
+交付一个可运行营地。
+
+## Verified now
+
+- 只读解析已经通过。
+
+## Next
+
+完成场景交互。
+
+## Done when
+
+浏览器验收通过。
+"""
 
 POOL_ZH = """---
 schema_version: 3
@@ -108,6 +170,32 @@ def make_store(pool: str, shelf: str) -> Path:
     return store
 
 
+def check_profile_and_now_parsing() -> None:
+    profile = camp_status.parse_self(SELF_PROFILE)
+    assert [item["label"] for item in profile["traits"]] == [
+        "决策方式", "质量标准", "沟通偏好", "授权边界"
+    ]
+    assert profile["goals"] == ["把点子养到能被真实使用"]
+    assert camp_status.parse_self(SELF_TEMPLATE_ONLY) == {"traits": [], "goals": []}
+
+    now = camp_status.parse_now(NOW_ZH)
+    assert now["goal"] == "交付一个可运行营地。"
+    assert "只读解析已经通过" in now["verified"]
+    assert now["next"] == "完成场景交互。"
+    assert now["done_when"] == "浏览器验收通过。"
+
+
+def check_activity_bands() -> None:
+    today = datetime.date(2026, 8, 14)
+    assert camp_status.classify_activity("2026-08-14", today) == "riding"
+    assert camp_status.classify_activity("2026-08-08", today) == "riding"
+    assert camp_status.classify_activity("2026-08-07", today) == "week"
+    assert camp_status.classify_activity("2026-07-16", today) == "week"
+    assert camp_status.classify_activity("2026-07-15", today) == "month"
+    assert camp_status.classify_activity("unknown", today) == "unknown"
+    assert camp_status.classify_activity("", today) == "unknown"
+
+
 def check_counts_and_readonly() -> None:
     store = make_store(POOL_ZH, SHELF_ZH)
     out = store / "camp.html"
@@ -173,6 +261,8 @@ def check_unknown_stage_warning() -> None:
 
 
 def main() -> None:
+    check_profile_and_now_parsing()
+    check_activity_bands()
     check_counts_and_readonly()
     check_empty()
     check_english()
