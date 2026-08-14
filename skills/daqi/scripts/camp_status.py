@@ -327,7 +327,33 @@ SCENE_CSS = r"""
   .camp-feature-ledger { left: 8%; top: 62%; }
   .camp-feature-self { left: calc(50% + 58px); top: 70%; }
   .camp-feature-stable { right: 7%; top: 61%; }
+  .camp-feature-scan { left: 8%; top: 33%; }
   .camp-app:not([data-view="overview"]) .camp-feature { opacity: 0; pointer-events: none; }
+
+  /* --- scan panel --- */
+  .camp-scan-bar { position: relative; height: 24px; border: 1px solid #111111; background: #FAFAF7; margin-bottom: 14px; }
+  .camp-scan-fill { height: 100%; background: #111111;
+                    background-image: repeating-conic-gradient(#F5F5F2 0 25%, transparent 0 50%);
+                    background-size: 6px 6px; }
+  .camp-scan-bar span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+                        font-size: 11px; mix-blend-mode: difference; color: #F5F5F2; }
+  .camp-scan-phases { display: flex; gap: 6px; margin-bottom: 16px; }
+  .camp-scan-phase { flex: 1; border: 1px solid #C9C9C2; background: #FAFAF7; font-size: 10px;
+                     letter-spacing: .1em; padding: 6px 4px; text-align: center; }
+  .camp-scan-phase.on { background: #111111; color: #F5F5F2; border-color: #111111; }
+  .camp-scan-phase.done { border-color: #111111; }
+  .camp-scan-phase.done::after { content: " ✓"; }
+  .camp-scan-head { font-size: 11px; letter-spacing: .08em; color: #72726C; margin: 14px 0 8px; }
+  .camp-scan-row { display: flex; gap: 10px; align-items: flex-start; border: 1px solid #C9C9C2;
+                   background: #FAFAF7; padding: 9px 12px; }
+  .camp-scan-row + .camp-scan-row { margin-top: 5px; }
+  .camp-scan-row input { margin-top: 4px; accent-color: #111111; }
+  .camp-scan-cmd { display: flex; gap: 8px; margin-top: 10px; }
+  .camp-scan-cmd input { flex: 1; min-width: 0; border: 1px solid #C9C9C2; background: #FAFAF7;
+                         padding: 8px 10px; font-size: 12px; color: #111111; }
+  .camp-scan-cmd button { border: 1px solid #111111; background: #FAFAF7; color: #111111;
+                          padding: 0 14px; cursor: pointer; font-size: 11px; }
+  .camp-scan-cmd button:hover { background: #111111; color: #F5F5F2; }
 
   .camp-fire {
     position: absolute;
@@ -403,6 +429,51 @@ SCENE_CSS = r"""
     18% { opacity: .64; }
     70% { opacity: .3; }
     100% { opacity: 0; transform: translate3d(calc(-50% + 11px), -62px, 0) scale(1.55); }
+  }
+
+  /* --- 颗粒火焰：CSS 点阵颗粒位移 + 火星上升，模拟燃烧 --- */
+  .camp-fire-grain {
+    position: absolute;
+    z-index: 5;
+    left: 50%;
+    bottom: 0;
+    width: 46px;
+    height: 76px;
+    transform: translateX(-50%);
+    background-image: repeating-conic-gradient(rgba(255, 240, 176, .9) 0 25%, transparent 0 50%);
+    background-size: 5px 5px;
+    clip-path: polygon(50% 0, 76% 39%, 66% 100%, 34% 100%, 20% 48%);
+    animation: camp-grain-shift 340ms steps(3, end) infinite;
+    opacity: .78;
+  }
+  @keyframes camp-grain-shift {
+    0%   { background-position: 0 0;       transform: translateX(-50%) scale(1, .96); }
+    33%  { background-position: 3px 2px;   transform: translateX(calc(-50% + 2px)) scale(.94, 1.02); }
+    66%  { background-position: -2px 4px;  transform: translateX(calc(-50% - 2px)) scale(1.04, .98); }
+    100% { background-position: 1px -3px;  transform: translateX(-50%) scale(.98, 1.05); }
+  }
+  .camp-sparks { position: absolute; inset: 0; z-index: 6; }
+  .camp-sparks i {
+    position: absolute;
+    left: 50%;
+    bottom: 30px;
+    width: 4px;
+    height: 4px;
+    background: #FFF0B0;
+    background-image: repeating-conic-gradient(#FFF0B0 0 25%, transparent 0 50%);
+    background-size: 2px 2px;
+    opacity: 0;
+    animation: camp-spark-rise 1.9s steps(7, end) infinite;
+  }
+  .camp-sparks i:nth-child(2) { animation-delay: -.6s; }
+  .camp-sparks i:nth-child(3) { animation-delay: -1.1s; }
+  .camp-sparks i:nth-child(4) { animation-delay: -1.5s; }
+  .camp-sparks i:nth-child(5) { animation-delay: -.9s; animation-duration: 2.4s; }
+  @keyframes camp-spark-rise {
+    0%   { opacity: 0; transform: translate(-50%, 0) scale(.6); }
+    14%  { opacity: .9; }
+    55%  { opacity: .5; transform: translate(calc(-50% - 5px), -30px) scale(1); }
+    100% { opacity: 0; transform: translate(calc(-50% + 6px), -66px) scale(.4); }
   }
 
   .camp-back {
@@ -554,6 +625,7 @@ SCENE_CSS = r"""
     .camp-feature-ledger { left: 3%; top: 43%; }
     .camp-feature-self { left: 54%; top: 55%; }
     .camp-feature-stable { right: 3%; top: 43%; }
+    .camp-feature-scan { left: 3%; top: 26%; }
     .camp-panel, .camp-panel-ledger, .camp-panel-stable, .camp-panel-self {
       position: relative;
       inset: auto;
@@ -567,6 +639,7 @@ SCENE_CSS = r"""
     .camp-world, .camp-zoom-layer, .camp-scene-image { transition: none; }
     .camp-panel { animation: none; }
     .camp-flame, .camp-ember-light, .camp-smoke i { animation: none; }
+    .camp-fire-grain, .camp-sparks i { animation: none; opacity: .55; }
     .camp-motion-rig { display: none; }
   }
 """
@@ -790,12 +863,128 @@ SCENE_JS = r"""
     }
   }
 
+  function copyText(text, button) {
+    const done = () => {
+      const old = button.textContent;
+      button.textContent = '已复制';
+      setTimeout(() => { button.textContent = old; }, 1200);
+    };
+    const fallback = () => {
+      const area = document.createElement('textarea');
+      area.value = text;
+      document.body.append(area);
+      area.select();
+      try { document.execCommand('copy'); done(); } catch (_) {}
+      area.remove();
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, fallback);
+    } else fallback();
+  }
+
+  function scanSelection() {
+    try { return JSON.parse(localStorage.getItem('daqi.camp.scanSelection') || '[]'); } catch (_) { return []; }
+  }
+
+  function renderScan() {
+    panelTitle.textContent = '扫描';
+    panelSub.textContent = '找点子 · 找项目';
+    const scan = payload.scan;
+    if (!scan) {
+      addEmpty('还没有扫描记录。对达奇说：扫描');
+      return;
+    }
+    const pct = Number(scan.percent || 0);
+    const barWrap = make('div', 'camp-scan-bar');
+    const fill = make('div', 'camp-scan-fill');
+    fill.style.width = `${Math.max(0, Math.min(100, pct))}%`;
+    barWrap.append(fill, make('span', 'camp-mono', `${pct}%`));
+    panelBody.append(barWrap);
+
+    const phaseRow = make('div', 'camp-scan-phases');
+    let passed = false;
+    [['scan', '扫描'], ['select', '选择'], ['read', '读取'], ['brain', '提炼'], ['commit', '提交']].forEach(([key, label]) => {
+      const chip = make('span', 'camp-scan-phase', label);
+      if (scan.phase === key) { chip.classList.add('on'); passed = true; }
+      else if (passed) {}
+      else chip.classList.add('done');
+      phaseRow.append(chip);
+    });
+    panelBody.append(phaseRow);
+
+    if (Array.isArray(scan.candidates) && scan.candidates.length) {
+      panelBody.append(make('div', 'camp-scan-head', '工作区候选 — 勾选后复制命令，发给达奇'));
+      const list = make('div', 'camp-list');
+      const saved = scanSelection();
+      let commandInput = null;
+      const refreshCommand = () => {
+        const sel = Array.from(list.querySelectorAll('input:checked')).map((i) => i.value);
+        try { localStorage.setItem('daqi.camp.scanSelection', JSON.stringify(sel)); } catch (_) {}
+        if (commandInput) commandInput.value = sel.length ? `达奇：扫描 ${sel.join(',')}` : '达奇：扫描';
+      };
+      scan.candidates.forEach((c, i) => {
+        const row = make('label', 'camp-scan-row');
+        const box = document.createElement('input');
+        box.type = 'checkbox';
+        box.value = String(i + 1);
+        box.checked = saved.includes(String(i + 1));
+        box.addEventListener('change', refreshCommand);
+        row.append(box);
+        const info = make('div', '');
+        info.append(make('div', 'camp-item-title', `${i + 1}. ${c.path}`));
+        info.append(make('div', 'camp-item-time camp-mono',
+          `${(c.agents || []).join(' · ')} · ${c.last_active || ''} · ${c.sessions || 0} 会话${c.in_shelf ? ' · 已在马厩' : ''}`));
+        row.append(info);
+        list.append(row);
+      });
+      panelBody.append(list);
+      const cmdRow = make('div', 'camp-scan-cmd');
+      commandInput = document.createElement('input');
+      commandInput.className = 'camp-mono';
+      commandInput.readOnly = true;
+      const copyBtn = make('button', '', '复制命令');
+      copyBtn.type = 'button';
+      copyBtn.addEventListener('click', () => copyText(commandInput.value, copyBtn));
+      cmdRow.append(commandInput, copyBtn);
+      panelBody.append(cmdRow);
+      refreshCommand();
+    }
+
+    if (Array.isArray(scan.proposals) && scan.proposals.length) {
+      panelBody.append(make('div', 'camp-scan-head', '提炼候选 — 确认后才会写入账本/马厩'));
+      const list = make('div', 'camp-list');
+      scan.proposals.forEach((p) => {
+        const row = make('div', 'camp-entry');
+        row.append(make('div', 'camp-item-title', `[${p.type}] ${p.title}`));
+        row.append(make('div', 'camp-item-time camp-mono', (p.line || '').slice(0, 90)));
+        list.append(row);
+      });
+      panelBody.append(list);
+      if (scan.token) {
+        const sel = scanSelection();
+        const tokRow = make('div', 'camp-scan-cmd');
+        const tokInput = document.createElement('input');
+        tokInput.className = 'camp-mono';
+        tokInput.readOnly = true;
+        tokInput.value = `camp_scan.py --select ${sel.join(',')} --commit ${scan.token}`;
+        const tokBtn = make('button', '', '复制提交命令');
+        tokBtn.type = 'button';
+        tokBtn.addEventListener('click', () => copyText(tokInput.value, tokBtn));
+        tokRow.append(tokInput, tokBtn);
+        panelBody.append(tokRow);
+      }
+    }
+
+    if (scan.applied) panelBody.append(make('div', 'camp-notice', `已于 ${scan.applied} 写入账本与马厩`));
+  }
+
   function renderPanel() {
     panelBody.replaceChildren();
     panel.className = `camp-panel camp-panel-${state.view}`;
     if (state.view === 'ledger') renderLedger();
     if (state.view === 'stable') renderStable();
     if (state.view === 'self') renderProfile();
+    if (state.view === 'scan') renderScan();
   }
 
   function renderState() {
@@ -1117,21 +1306,32 @@ def paths_share_identity(left: Path, right: Path) -> bool:
 def render_html(store: Path, pool: list[dict], projects: list[dict], profile: dict,
                       warnings: list[str], gen_ts: datetime.datetime) -> str:
     """Render one self-contained scene; all user data stays in inert JSON."""
+    scan_state = None
+    scan_path = store / ".scan-state.json"
+    if scan_path.is_file():
+        try:
+            scan_state = json.loads(scan_path.read_text())
+        except (OSError, json.JSONDecodeError):
+            scan_state = None
     payload = {
         "ledger": pool,
         "projects": projects,
         "profile": profile,
         "warnings": warnings,
+        "scan": scan_state,
         "generated_at": gen_ts.isoformat(),
     }
     payload_json = json.dumps(payload, ensure_ascii=False).replace("</", "<\\/")
     night = asset_data_uri("camp-night.png")
     day = asset_data_uri("camp-day.png")
+    scan_active = bool(scan_state and scan_state.get("phase") in ("read", "brain") and not scan_state.get("applied"))
+    refresh_meta = '<meta http-equiv="refresh" content="1.5">' if scan_active else ""
     return f"""<!doctype html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+{refresh_meta}
 <title>马掌望台</title>
 <style>{SCENE_CSS}</style>
 </head>
@@ -1157,6 +1357,8 @@ def render_html(store: Path, pool: list[dict], projects: list[dict], profile: di
         <i class="camp-flame camp-flame-c"></i>
         <i class="camp-flame camp-flame-a"></i>
         <i class="camp-flame camp-flame-b"></i>
+        <i class="camp-fire-grain"></i>
+        <span class="camp-sparks"><i></i><i></i><i></i><i></i><i></i></span>
       </div>
     </div>
   </div>
@@ -1174,6 +1376,9 @@ def render_html(store: Path, pool: list[dict], projects: list[dict], profile: di
     </div>
   </header>
 
+  <button type="button" class="camp-feature camp-feature-scan" data-view="scan" aria-expanded="false">
+    <strong>扫描</strong><span>找点子 · 找项目</span>
+  </button>
   <button type="button" class="camp-feature camp-feature-ledger" data-view="ledger" aria-expanded="false">
     <strong>营地账本</strong><span>情报 · 点子 · 计划</span>
   </button>
@@ -1231,6 +1436,19 @@ def summarize(store: Path, pool: list[dict], projects: list[dict], out: Path,
     return "\n".join(lines)
 
 
+def build_page(store: Path, gen_ts: datetime.datetime | None = None) -> str:
+    """Parse the stores read-only and render the full camp page."""
+    gen_ts = gen_ts or datetime.datetime.now().astimezone()
+    pool, warn_pool = parse_pool((store / "POOL.md").read_text())
+    bands, warn_shelf = parse_shelf((store / "SHELF.md").read_text())
+    flat_projects = flatten_projects(bands)
+    self_path = store / "SELF.md"
+    profile = parse_self(self_path.read_text()) if self_path.is_file() else {"traits": [], "goals": []}
+    projects, warn_now = enrich_projects(flat_projects, gen_ts)
+    warnings = warn_pool + warn_shelf + warn_now
+    return render_html(store, pool, projects, profile, warnings, gen_ts)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Render the read-only camp archive view.")
     default_store = os.environ.get("DAQI_HOME") or str(Path.home() / ".daqi")
@@ -1262,14 +1480,14 @@ def main(argv: list[str] | None = None) -> int:
         print(f"输出路径与只读输入冲突：{out} -> {conflict}", file=sys.stderr)
         return 2
 
-    profile = parse_self(self_path.read_text()) if self_path.is_file() else {"traits": [], "goals": []}
-    projects, warn_now = enrich_projects(flat_projects, gen_ts)
-    warnings = warn_pool + warn_shelf + warn_now
-
-    html_text = render_html(store, pool, projects, profile, warnings, gen_ts)
+    html_text = build_page(store, gen_ts)
     out.write_text(html_text)
 
-    print(summarize(store, pool, projects, out, warnings))
+    pool, _ = parse_pool(pool_path.read_text())
+    bands, _ = parse_shelf(shelf_path.read_text())
+    flat = flatten_projects(bands)
+    projects, warn_now = enrich_projects(flat, gen_ts)
+    print(summarize(store, pool, projects, out, warn_pool + warn_shelf + warn_now))
     return 0
 
 

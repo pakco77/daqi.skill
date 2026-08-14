@@ -17,9 +17,7 @@ propose intel/idea/project -> commit to POOL/SHELF after confirmation.
 from __future__ import annotations
 
 import argparse
-import base64
 import hashlib
-import html
 import json
 import os
 import re
@@ -32,58 +30,13 @@ from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import rebuild_shelf  # noqa: E402
-from camp_status import parse_pool, parse_shelf  # noqa: E402
+from camp_status import build_page, parse_pool, parse_shelf  # noqa: E402
 
 STATE_NAME = ".scan-state.json"
-PROPOSALS_NAME = ".scan-proposals.json"
-HTML_NAME = "scan.html"
 
 MAX_FILES_PER_WORKSPACE = 6
 SHALLOW_BYTES = 2400
 DEEP_BYTES = 9000
-
-# Grayscale Dither Archive palette
-C_BG, C_BG2, C_CARD = "#F2F2EE", "#E5E5E0", "#FAFAF7"
-C_TEXT, C_TEXT2, C_BORDER = "#111111", "#72726C", "#C9C9C2"
-C_BLACK, C_REVERSE = "#050505", "#F5F5F2"
-
-CSS = f"""
-  body {{ background:{C_BG}; color:{C_TEXT}; font-family:-apple-system,"PingFang SC",sans-serif; line-height:1.55; }}
-  .page {{ max-width:760px; margin:0 auto; padding:40px 24px 56px; }}
-  .mono {{ font-family:ui-monospace,Menlo,monospace; letter-spacing:.02em; }}
-  .sec {{ color:{C_TEXT2}; }}
-  h1 {{ font-size:20px; letter-spacing:.12em; }}
-  .meta {{ font-size:11px; color:{C_TEXT2}; margin-top:6px; }}
-  .bar {{ height:26px; border:1px solid {C_TEXT}; background:{C_CARD}; margin-top:24px; position:relative; }}
-  .bar .fill {{ height:100%; background:{C_TEXT};
-                background-image:repeating-conic-gradient({C_REVERSE} 0 25%, transparent 0 50%);
-                background-size:6px 6px; width:{{pct}}%; }}
-  .bar .pct {{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-               font-size:11px; mix-blend-mode:difference; color:{C_REVERSE}; }}
-  .phases {{ display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin-top:18px; }}
-  .phase {{ border:1px solid {C_BORDER}; background:{C_CARD}; padding:10px 12px; font-size:11px; }}
-  .phase.on {{ background:{C_TEXT}; color:{C_CARD}; }}
-  .phase.done {{ border-color:{C_TEXT}; }}
-  .phase.done::after {{ content:" ✓"; }}
-  .items {{ margin-top:28px; }}
-  .item {{ display:flex; gap:10px; align-items:baseline; border:1px solid {C_BORDER};
-          background:{C_CARD}; padding:9px 12px; }}
-  .item + .item {{ margin-top:5px; }}
-  .item .name {{ flex:1; font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }}
-  .chip {{ font-size:10px; padding:1px 6px; border:1px solid {C_TEXT}; white-space:nowrap; }}
-  .chip.doing {{ background:{C_TEXT}; color:{C_CARD}; }}
-  .chip.done {{ color:{C_TEXT2}; border-color:{C_BORDER}; }}
-  .dots {{ width:12px; height:12px; display:inline-block;
-           background-image:radial-gradient({C_TEXT} 1px, transparent 1px);
-           background-size:6px 6px; }}
-  footer {{ margin-top:36px; padding-top:14px; border-top:1px solid {C_BORDER};
-            font-size:10px; color:{C_TEXT2}; letter-spacing:.08em; }}
-"""
-
-
-def esc(s: str) -> str:
-    return html.escape(s or "", quote=True)
-
 
 # ------------------------------------------------------------ configuration
 
@@ -292,57 +245,22 @@ def heuristic(root: Path, previews: list[dict]) -> list[dict]:
 # ------------------------------------------------------------------- state
 
 
+def render_camp_page(store: Path) -> None:
+    """Regenerate camp.html so its 扫描 panel mirrors the current state."""
+    try:
+        (store / "camp.html").write_text(build_page(store))
+    except Exception as error:
+        print(f"warning: camp page refresh failed: {error}", file=sys.stderr)
+
+
 def write_state(store: Path, state: dict) -> None:
     (store / STATE_NAME).write_text(json.dumps(state, ensure_ascii=False, indent=2))
-
-
-def render_html(state: dict) -> str:
-    pct = int(state.get("percent", 0))
-    phases = [("scan", "扫描"), ("select", "选择"), ("read", "读取"), ("brain", "提炼"), ("commit", "提交")]
-    current = state.get("phase", "scan")
-    phase_blocks = []
-    seen_current = False
-    for key, label in phases:
-        cls = "phase done" if seen_current else "phase on" if key == current else "phase"
-        if key == current:
-            seen_current = True
-        phase_blocks.append(f'<div class="{cls}">{label}<br><span class="mono">{key.upper()}</span></div>')
-    items = ""
-    for it in state.get("items", []):
-        chip = "done" if it["status"] == "done" else "doing" if it["status"] == "reading" else ""
-        mark = '<span class="dots"></span>' if it["status"] == "reading" else ""
-        items += (
-            f'<div class="item"><span class="chip {chip}">{esc(it["status"])}</span>'
-            f'<span class="name" title="{esc(it["path"])}">{esc(Path(it["path"]).name)} · {esc(it["path"])}</span>'
-            f"<span>{mark}</span></div>"
-        )
-    css = CSS.replace("{pct}", str(pct))
-    return f"""<!doctype html>
-<html lang="zh">
-<head>
-<meta charset="utf-8">
-<meta http-equiv="refresh" content="1.5">
-<title>扫描进程 · SCAN PROCESS</title>
-<style>{css}</style>
-</head>
-<body>
-<div class="page">
-  <h1>扫描进程 <span class="sec mono">SCAN PROCESS</span></h1>
-  <div class="meta mono">DAQI_CAMP_SCAN · {esc(state.get("started", ""))} · PHASE {current.upper()} · READ-ONLY UNTIL COMMIT</div>
-  <div class="bar"><div class="fill"></div><div class="pct mono">{pct}%</div></div>
-  <div class="phases">{''.join(phase_blocks)}</div>
-  <div class="items">{items}</div>
-  <footer class="mono">只读扫描：仅会话 cwd + 时间戳 + 项目上下文文件，不读对话记录 · 提交前不写任何 store · 自动刷新 1.5s</footer>
-</div>
-</body>
-</html>
-"""
 
 
 def tick(store: Path, state: dict, **fields: object) -> None:
     state.update(fields)
     write_state(store, state)
-    (store / HTML_NAME).write_text(render_html(state))
+    render_camp_page(store)
     print(f"[{state.get('percent', 0):>3}%] {fields.get('log', '')}")
 
 
@@ -385,8 +303,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     started = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
     state = {"phase": "scan", "percent": 0, "started": started, "items": [], "log": "开始扫描 Agent 历史"}
     write_state(store, state)
-    (store / HTML_NAME).write_text(render_html(state))
-    print(f"[  0%] 开始扫描 Agent 历史 · 进度页：{store / HTML_NAME}")
+    render_camp_page(store)
+    print(f"[  0%] 开始扫描 Agent 历史 · 进度：{store / 'camp.html'} 的扫描面板")
 
     tick(store, state, percent=12, log="扫描 DSH / Claude Code / Codex 会话元数据（仅 cwd+时间戳，不读对话）")
     candidates = scan_metadata(store)
@@ -402,7 +320,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         print("单选/多选示例：camp_scan.py --select 1,3  或  --select daqi.skill,IP-skill")
         state["phase"] = "select"
         write_state(store, state)
-        (store / HTML_NAME).write_text(render_html(state))
+        render_camp_page(store)
         return 0
 
     picked = []

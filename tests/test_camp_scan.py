@@ -80,8 +80,12 @@ def check_scan_pipeline() -> None:
     # phase 1 must not touch stores
     assert (store / "POOL.md").read_bytes() == pool_bytes
     assert (store / "SHELF.md").read_bytes() == shelf_bytes
-    html = (store / "scan.html").read_text()
-    assert "SCAN PROCESS" in html and "1.5" in html  # auto-refresh
+    camp = (store / "camp.html").read_text()
+    assert 'data-view="scan"' in camp and "工作区候选" in camp
+    # 颗粒火焰：CSS 燃烧动画 + 降级开关
+    assert ".camp-fire-grain" in camp and "camp-grain-shift" in camp
+    assert ".camp-sparks" in camp and "camp-spark-rise" in camp
+    assert "prefers-reduced-motion" in camp
     state = json.loads((store / ".scan-state.json").read_text())
     assert state["phase"] in ("scan", "select") and len(state["candidates"]) == 2
 
@@ -121,7 +125,7 @@ def check_no_transcript_reads() -> None:
     trap.write_text(f'{{"cwd":"{ws1}","timestamp":"2026-08-14T10:00:00Z","content":"CANARY_SECRET"}}\n')
     result = run(store, home)
     assert result.returncode == 0, result.stderr
-    for artifact in ((store / "scan.html").read_text(), (store / ".scan-state.json").read_text(), result.stdout):
+    for artifact in ((store / "camp.html").read_text(), (store / ".scan-state.json").read_text(), result.stdout):
         assert "CANARY_SECRET" not in artifact
 
 
