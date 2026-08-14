@@ -170,6 +170,15 @@ def make_store(pool: str, shelf: str) -> Path:
     return store
 
 
+def make_project(now_text: str | None) -> Path:
+    root = Path(tempfile.mkdtemp(prefix="daqi-project-"))
+    if now_text is not None:
+        context = root / "00_Context"
+        context.mkdir()
+        (context / "NOW.md").write_text(now_text)
+    return root
+
+
 def check_profile_and_now_parsing() -> None:
     profile = camp_status.parse_self(SELF_PROFILE)
     assert [item["label"] for item in profile["traits"]] == [
@@ -194,6 +203,23 @@ def check_activity_bands() -> None:
     assert camp_status.classify_activity("2026-07-15", today) == "month"
     assert camp_status.classify_activity("unknown", today) == "unknown"
     assert camp_status.classify_activity("", today) == "unknown"
+
+
+def check_project_enrichment_and_readonly() -> None:
+    with_now = make_project(NOW_ZH)
+    without_now = make_project(None)
+    projects = [
+        {"name": "A", "path": str(with_now), "last": "2026-08-14", "agent": "Codex"},
+        {"name": "B", "path": str(without_now), "last": "bad-date", "agent": "Claude Code"},
+    ]
+    now_bytes = (with_now / "00_Context" / "NOW.md").read_bytes()
+    result, warnings = camp_status.enrich_projects(projects, datetime.date(2026, 8, 14))
+    assert result[0]["display_band"] == "riding"
+    assert result[0]["now"]["next"] == "完成场景交互。"
+    assert result[1]["display_band"] == "unknown"
+    assert result[1]["now"] is None
+    assert warnings == []
+    assert (with_now / "00_Context" / "NOW.md").read_bytes() == now_bytes
 
 
 def check_counts_and_readonly() -> None:
@@ -263,6 +289,7 @@ def check_unknown_stage_warning() -> None:
 def main() -> None:
     check_profile_and_now_parsing()
     check_activity_bands()
+    check_project_enrichment_and_readonly()
     check_counts_and_readonly()
     check_empty()
     check_english()

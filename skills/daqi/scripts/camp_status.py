@@ -368,6 +368,29 @@ def parse_shelf(text: str) -> tuple[dict[str, list[dict]], list[str]]:
     return bands, warnings
 
 
+def flatten_projects(bands: dict[str, list[dict]]) -> list[dict]:
+    return [dict(project) for key, _ in BANDS for project in bands[key]]
+
+
+def enrich_projects(projects: list[dict], today: datetime.date) -> tuple[list[dict], list[str]]:
+    enriched = []
+    warnings = []
+    for project in projects:
+        item = dict(project)
+        item["display_band"] = classify_activity(item.get("last", ""), today)
+        item["now"] = None
+        path = item.get("path", "")
+        if path:
+            now_path = Path(path) / "00_Context" / "NOW.md"
+            try:
+                if now_path.is_file():
+                    item["now"] = parse_now(now_path.read_text())
+            except OSError as exc:
+                warnings.append(f"NOW unavailable for {item.get('name', '(未命名)')}: {exc}")
+        enriched.append(item)
+    return enriched, warnings
+
+
 # ------------------------------------------------------------------ render
 
 
