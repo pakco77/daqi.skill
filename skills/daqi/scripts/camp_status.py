@@ -384,8 +384,14 @@ def enrich_projects(projects: list[dict], today: datetime.date) -> tuple[list[di
             now_path = Path(path) / "00_Context" / "NOW.md"
             try:
                 if now_path.is_file():
-                    item["now"] = parse_now(now_path.read_text())
-            except OSError as exc:
+                    checkpoint = parse_now(now_path.read_text(encoding="utf-8"))
+                    if all(checkpoint.values()):
+                        item["now"] = checkpoint
+                    else:
+                        warnings.append(
+                            f"NOW has no complete checkpoint for {item.get('name', '(未命名)')}"
+                        )
+            except (OSError, UnicodeError) as exc:
                 warnings.append(f"NOW unavailable for {item.get('name', '(未命名)')}: {exc}")
         enriched.append(item)
     return enriched, warnings

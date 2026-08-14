@@ -249,6 +249,68 @@ def check_project_enrichment_and_readonly() -> None:
     assert (with_now / "00_Context" / "NOW.md").read_bytes() == now_bytes
 
 
+def check_invalid_now_degrades_with_warning() -> None:
+    bad_utf8 = make_project(None)
+    (bad_utf8 / "00_Context").mkdir()
+    bad_utf8_path = bad_utf8 / "00_Context" / "NOW.md"
+    bad_utf8_path.write_bytes(b"\xff\xfe\x00")
+    raw_bytes = bad_utf8_path.read_bytes()
+    result, warnings = camp_status.enrich_projects(
+        [{"name": "bad utf8", "path": str(bad_utf8), "last": "2026-08-14", "agent": "Codex"}],
+        datetime.date(2026, 8, 14),
+    )
+    assert result[0]["now"] is None
+    assert any("NOW unavailable for bad utf8" in warning for warning in warnings)
+    assert bad_utf8_path.read_bytes() == raw_bytes
+
+    empty_now_cases = (
+        """## Goal
+
+<目标>
+
+## Verified now
+
+<已验证>
+
+## Next
+
+<下一步>
+
+## Done when
+
+<完成条件>
+""",
+        "# NOW\n\n没有四个规定段落。\n",
+    )
+    for index, now_text in enumerate(empty_now_cases):
+        project = make_project(now_text)
+        result, warnings = camp_status.enrich_projects(
+            [{"name": f"empty {index}", "path": str(project), "last": "2026-08-14", "agent": "Codex"}],
+            datetime.date(2026, 8, 14),
+        )
+        assert result[0]["now"] is None
+        assert any(f"NOW has no complete checkpoint for empty {index}" in warning for warning in warnings)
+
+
+def check_exact_project_root_ignores_sibling_now() -> None:
+    parent = Path(tempfile.mkdtemp(prefix="daqi-projects-"))
+    selected = parent / "selected"
+    selected.mkdir()
+    decoy_context = parent / "decoy" / "00_Context"
+    decoy_context.mkdir(parents=True)
+    decoy_now = decoy_context / "NOW.md"
+    decoy_now.write_text(NOW_ZH)
+    decoy_bytes = decoy_now.read_bytes()
+
+    result, warnings = camp_status.enrich_projects(
+        [{"name": "selected", "path": str(selected), "last": "2026-08-14", "agent": "Codex"}],
+        datetime.date(2026, 8, 14),
+    )
+    assert result[0]["now"] is None
+    assert warnings == []
+    assert decoy_now.read_bytes() == decoy_bytes
+
+
 def check_main_data_assembly_and_readonly() -> None:
     with_now = make_project(NOW_ZH)
     without_now = make_project(None)
@@ -423,6 +485,8 @@ def main() -> None:
     check_profile_and_now_parsing()
     check_activity_bands()
     check_project_enrichment_and_readonly()
+    check_invalid_now_degrades_with_warning()
+    check_exact_project_root_ignores_sibling_now()
     check_main_data_assembly_and_readonly()
     check_output_input_conflicts_are_rejected()
     check_counts_and_readonly()
