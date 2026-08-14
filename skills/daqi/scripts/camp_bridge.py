@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sys
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
@@ -44,6 +45,9 @@ class Handler(BaseHTTPRequestHandler):
             self._send(404, {"ok": False})
 
     def do_POST(self) -> None:
+        if self.path == "/delete":
+            self._delete()
+            return
         if self.path != "/set-key":
             self._send(404, {"ok": False})
             return
@@ -74,6 +78,38 @@ class Handler(BaseHTTPRequestHandler):
         os.chmod(tmp, 0o600)
         tmp.replace(path)
         self._send(200, {"ok": True, "model": llm["model"], "base_url": llm["base_url"]})
+
+    def _delete(self) -> None:
+        """Remove one exact line from POOL.md or SHELF.md, then re-render camp.html."""
+        length = int(self.headers.get("Content-Length", 0))
+        try:
+            payload = json.loads(self.rfile.read(length) or b"{}")
+        except json.JSONDecodeError:
+            self._send(400, {"ok": False, "error": "bad json"})
+            return
+        file = str(payload.get("file", ""))
+        line = str(payload.get("line", ""))
+        if file not in ("POOL.md", "SHELF.md") or not line:
+            self._send(400, {"ok": False, "error": "bad target"})
+            return
+        path = self.store / file
+        if not path.is_file():
+            self._send(404, {"ok": False, "error": "missing file"})
+            return
+        lines = path.read_text().splitlines()
+        if line not in lines:
+            self._send(404, {"ok": False, "error": "line not found"})
+            return
+        lines.remove(line)
+        path.write_text("\n".join(lines).rstrip("\n") + "\n")
+        try:
+            sys.path.insert(0, str(Path(__file__).resolve().parent))
+            from camp_status import build_page
+
+            (self.store / "camp.html").write_text(build_page(self.store))
+        except Exception as error:  # delete succeeded; page refresh is best-effort
+            print(f"warning: camp refresh failed: {error}", file=sys.stderr)
+        self._send(200, {"ok": True})
 
     def log_message(self, *args: object) -> None:
         pass

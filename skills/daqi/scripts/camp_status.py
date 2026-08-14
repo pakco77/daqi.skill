@@ -441,35 +441,39 @@ SCENE_CSS = r"""
     from { opacity: .48; transform: translateX(-50%) scale(.94); }
     to { opacity: .82; transform: translateX(-50%) scale(1.04); }
   }
+  /* 特别大的炊烟：宽烟柱 + 五缕错峰上升 */
   .camp-smoke {
     position: absolute;
     left: 50%;
-    bottom: 43px;
-    width: 52px;
-    height: 70px;
+    bottom: 40px;
+    width: 150px;
+    height: 240px;
     transform: translateX(-50%);
   }
   .camp-smoke i {
     position: absolute;
     left: 50%;
     bottom: 0;
-    width: 13px;
-    height: 18px;
-    border: 1px solid rgba(242, 242, 238, .58);
-    background-color: rgba(201, 201, 194, .42);
-    background-image: repeating-conic-gradient(rgba(242, 242, 238, .68) 0 25%, transparent 0 50%);
-    background-size: 4px 4px;
-    clip-path: polygon(24% 0, 82% 12%, 100% 62%, 67% 100%, 12% 84%, 0 37%);
+    width: 34px;
+    height: 52px;
+    border: 2px solid rgba(242, 242, 238, .62);
+    background-color: rgba(201, 201, 194, .5);
+    background-image: repeating-conic-gradient(rgba(242, 242, 238, .75) 0 25%, transparent 0 50%);
+    background-size: 7px 7px;
+    clip-path: polygon(22% 0, 84% 10%, 100% 64%, 68% 100%, 10% 86%, 0 34%);
     opacity: 0;
-    animation: camp-smoke-rise 2.8s steps(9, end) infinite;
+    animation: camp-smoke-rise 3.4s steps(10, end) infinite;
   }
-  .camp-smoke i:nth-child(2) { animation-delay: -.95s; }
-  .camp-smoke i:nth-child(3) { animation-delay: -1.9s; }
+  .camp-smoke i:nth-child(1) { animation-delay: 0s; transform-origin: 50% 100%; }
+  .camp-smoke i:nth-child(2) { width: 44px; height: 66px; animation-delay: -1.1s; }
+  .camp-smoke i:nth-child(3) { animation-delay: -2.2s; }
+  .camp-smoke i:nth-child(4) { width: 40px; height: 60px; animation-delay: -.5s; }
+  .camp-smoke i:nth-child(5) { width: 48px; height: 72px; animation-delay: -1.7s; }
   @keyframes camp-smoke-rise {
-    0% { opacity: 0; transform: translate3d(-50%, 2px, 0) scale(.7); }
-    18% { opacity: .64; }
-    70% { opacity: .3; }
-    100% { opacity: 0; transform: translate3d(calc(-50% + 11px), -62px, 0) scale(1.55); }
+    0% { opacity: 0; transform: translate3d(-50%, 4px, 0) scale(.55); }
+    16% { opacity: .62; }
+    62% { opacity: .32; }
+    100% { opacity: 0; transform: translate3d(calc(-50% + 26px), -190px, 0) scale(2.2); }
   }
 
   /* --- 颗粒火焰：CSS 点阵颗粒位移 + 火星上升，模拟燃烧 --- */
@@ -663,6 +667,16 @@ SCENE_CSS = r"""
                     border: 2px solid var(--ui-border); white-space: nowrap; }
   .camp-scan-chip.doing { background: var(--ui-ink); color: var(--ui-bg); border-color: var(--ui-ink); }
   .camp-scan-chip.done { color: var(--ui-soft); border-color: var(--ui-border); }
+  .camp-project { grid-template-columns: minmax(0, 1fr) auto auto; }
+  .camp-del {
+    border: 2px solid var(--ui-border); border-radius: 0;
+    background: var(--ui-bg); color: var(--ui-ink);
+    font-family: var(--camp-px-font); font-size: 10px;
+    padding: 3px 9px; cursor: pointer;
+  }
+  .camp-del:hover { border-color: var(--ui-ink); }
+  .camp-del.armed { background: var(--ui-ink); color: var(--ui-bg); border-color: var(--ui-ink); }
+  .camp-del.off { opacity: .42; cursor: default; }
   .camp-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
   .camp-tag {
     position: relative;
@@ -886,6 +900,35 @@ SCENE_JS = r"""
     panelBody.append(make('div', 'camp-notice', `有 ${payload.warnings.length} 条记录暂时无法读取`));
   }
 
+  function armDelete(button, run) {
+    const disarm = () => {
+      clearTimeout(timer);
+      button.textContent = '删除';
+      button.classList.remove('armed');
+      button.removeEventListener('click', runOnce);
+    };
+    const runOnce = () => {
+      button.removeEventListener('click', runOnce);
+      clearTimeout(timer);
+      run();
+    };
+    button.textContent = '确认删除?';
+    button.classList.add('armed');
+    const timer = setTimeout(disarm, 4000);
+    button.addEventListener('click', runOnce);
+  }
+
+  function deleteRow(file, line, button) {
+    fetch('http://127.0.0.1:8799/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ file, line })
+    }).then((r) => r.json()).then((d) => {
+      if (d && d.ok) { location.reload(); }
+      else { button.textContent = '删除失败'; }
+    }).catch(() => { button.textContent = '桥未启动'; });
+  }
+
   function renderLedger() {
     panelTitle.textContent = '营地账本';
     panelSub.textContent = '情报 · 点子 · 计划';
@@ -911,8 +954,19 @@ SCENE_JS = r"""
     const list = make('div', 'camp-list');
     items.slice(state.ledgerPage * PAGE_SIZE, (state.ledgerPage + 1) * PAGE_SIZE).forEach((item) => {
       const row = make('div', 'camp-entry');
-      row.append(make('div', 'camp-item-title', item.text || '未命名条目'));
-      row.append(make('div', 'camp-item-time camp-mono', item.last_seen || '时间未知'));
+      const left = make('div', '');
+      left.append(make('div', 'camp-item-title', item.text || '未命名条目'));
+      left.append(make('div', 'camp-item-time camp-mono', item.last_seen || '时间未知'));
+      row.append(left);
+      const del = make('button', 'camp-del', '删除');
+      del.type = 'button';
+      if (item.raw) {
+        armDelete(del, () => deleteRow('POOL.md', item.raw, del));
+      } else {
+        del.disabled = true;
+        del.classList.add('off');
+      }
+      row.append(del);
       list.append(row);
     });
     panelBody.append(list);
@@ -969,16 +1023,27 @@ SCENE_JS = r"""
     }
     const list = make('div', 'camp-list');
     projects.slice(state.stablePage * PAGE_SIZE, (state.stablePage + 1) * PAGE_SIZE).forEach((project) => {
-      const row = make('button', 'camp-project');
-      row.type = 'button';
+      const row = make('div', 'camp-project');
+      row.tabIndex = 0;
       const main = make('div');
       main.append(make('div', 'camp-item-title', project.name || '未命名项目'));
       main.append(make('div', 'camp-item-meta camp-mono', `Agent · ${project.agent || '未知'}`));
       row.append(main, make('div', 'camp-item-time camp-mono', project.last || '时间未知'));
-      row.addEventListener('click', () => {
+      const del = make('button', 'camp-del', '删除');
+      del.type = 'button';
+      del.addEventListener('click', (event) => {
+        event.stopPropagation();
+        if (project.raw) armDelete(del, () => deleteRow('SHELF.md', project.raw, del));
+      });
+      row.append(del);
+      const openNow = () => {
         selectedProject = project;
         state.stableDepth = 'now';
         renderState();
+      };
+      row.addEventListener('click', openNow);
+      row.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openNow(); }
       });
       list.append(row);
     });
@@ -1065,9 +1130,13 @@ SCENE_JS = r"""
       const saved = scanSelection();
       let commandInput = null;
       const refreshCommand = () => {
-        const paths = Array.from(list.querySelectorAll('input:checked')).map((i) => i.value);
-        try { localStorage.setItem('daqi.camp.scanSelection', JSON.stringify(paths)); } catch (_) {}
-        const nums = paths.map((p) => {
+        const pagePaths = scan.candidates
+          .slice(scanPage * SCAN_PAGE_SIZE, (scanPage + 1) * SCAN_PAGE_SIZE)
+          .map((c) => c.path);
+        const savedPaths = scanSelection().filter((p) => !pagePaths.includes(p));
+        Array.from(list.querySelectorAll('input:checked')).forEach((i) => savedPaths.push(i.value));
+        try { localStorage.setItem('daqi.camp.scanSelection', JSON.stringify(savedPaths)); } catch (_) {}
+        const nums = savedPaths.map((p) => {
           const idx = scan.candidates.findIndex((c) => c.path === p);
           return idx >= 0 ? String(idx + 1) : null;
         }).filter(Boolean);
@@ -1103,6 +1172,7 @@ SCENE_JS = r"""
         row.append(info);
         list.append(row);
       });
+      addPages(scan.candidates.length, scanPage, (page) => { scanPage = page; renderScan(); });
       panelBody.append(list);
       addPages(scan.candidates.length, scanPage, (page) => { scanPage = page; renderScan(); });
       const cmdRow = make('div', 'camp-scan-cmd');
@@ -1267,6 +1337,7 @@ SCENE_JS = r"""
     };
   }
   camp.addEventListener('wheel', (event) => {
+    if (event.target.closest && event.target.closest('.camp-panel')) return; // 框内只上下滚动
     clearTimeout(wheelTimer);
     wheelTimer = setTimeout(() => { wheelTotal = 0; wheelLocked = false; }, 220);
     if (event.deltaY < 0) {
@@ -1431,7 +1502,7 @@ def parse_pool(text: str) -> tuple[list[dict], list[str]]:
         parts = [p.strip() for p in re.split(r"[｜|]", rest)]
         text_part = parts[0] if parts else ""
         last_seen = parts[-1] if len(parts) > 1 else ""
-        entries.append({"stage": stage, "text": text_part, "last_seen": last_seen})
+        entries.append({"stage": stage, "text": text_part, "last_seen": last_seen, "raw": line})
     return entries, warnings
 
 
@@ -1463,7 +1534,7 @@ def parse_shelf(text: str) -> tuple[dict[str, list[dict]], list[str]]:
         path = cells[1] if len(cells) > 1 else ""
         last = cells[2] if len(cells) > 2 else ""
         agent = cells[3] if len(cells) > 3 else ""
-        bands[current].append({"name": name, "path": path, "last": last, "agent": agent})
+        bands[current].append({"name": name, "path": path, "last": last, "agent": agent, "raw": line})
     return bands, warnings
 
 
@@ -1575,7 +1646,7 @@ def render_html(store: Path, pool: list[dict], projects: list[dict], profile: di
       </div>
 
       <div class="camp-fire">
-        <div class="camp-smoke"><i></i><i></i><i></i></div>
+        <div class="camp-smoke"><i></i><i></i><i></i><i></i><i></i></div>
         <i class="camp-ember-light"></i>
         <i class="camp-flame camp-flame-c"></i>
         <i class="camp-flame camp-flame-a"></i>
