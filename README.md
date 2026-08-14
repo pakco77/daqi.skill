@@ -53,7 +53,7 @@ Every pain point you mention and every idea you toss out goes into the camp ledg
 - **Camp page `~/.daqi/camp.html`** — an offline, self-contained single page in Grayscale Dither Archive style with day/night themes; grain fire, breathing horse, wind over the ground; scrollable panels, × delete, page-switching scan tabs. Only the fire has color.
 - **Scan `camp_scan.py`** — finds ideas and projects; shallow is free, deep distills through the DeepSeek brain (key entered in the page's 设置 panel, written only to local `config.json`); candidates are shown and token-confirmed before anything lands.
 - **One-click organization `organize_stable.py`** — resolves the project from the stables, moves only high-confidence files, writes `cleanup-log.md`, never deletes.
-- **Codex automatic continuity** — no need to remember start or wrap up after one exact-root setup: Codex restores NOW at session start and checkpoints at stop; other hosts use explicit commands. No unverified native-hook claims.
+- **Codex automatic continuity** — No need to remember start or wrap up after one exact-root setup: Codex restores NOW at session start and checkpoints at stop; other hosts use explicit commands. No unverified native-hook claims.
 
 ## Data security
 
