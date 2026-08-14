@@ -294,14 +294,37 @@ def parse_now(text: str) -> dict:
     }
 
 
-def classify_activity(value: str, today: datetime.date) -> str:
-    match = re.search(r"\d{4}-\d{2}-\d{2}", value or "")
-    if not match:
-        return "unknown"
-    try:
-        days = (today - datetime.date.fromisoformat(match.group())).days
-    except ValueError:
-        return "unknown"
+def classify_activity(value: str, now: datetime.date | datetime.datetime) -> str:
+    value = (value or "").strip()
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+        try:
+            active_date = datetime.date.fromisoformat(value)
+        except ValueError:
+            return "unknown"
+        current_date = now.date() if isinstance(now, datetime.datetime) else now
+        days = (current_date - active_date).days
+    else:
+        try:
+            active_at = datetime.datetime.fromisoformat(
+                value[:-1] + "+00:00" if value.endswith("Z") else value
+            )
+        except ValueError:
+            return "unknown"
+        if (
+            not isinstance(now, datetime.datetime)
+            or now.tzinfo is None
+            or now.utcoffset() is None
+            or active_at.tzinfo is None
+            or active_at.utcoffset() is None
+        ):
+            return "unknown"
+        elapsed_seconds = (
+            now.astimezone(datetime.timezone.utc) - active_at.astimezone(datetime.timezone.utc)
+        ).total_seconds()
+        if elapsed_seconds < 0:
+            return "unknown"
+        days = int(elapsed_seconds // 86400)
+
     if days < 0:
         return "unknown"
     if days < 7:
@@ -372,12 +395,12 @@ def flatten_projects(bands: dict[str, list[dict]]) -> list[dict]:
     return [dict(project) for key, _ in BANDS for project in bands[key]]
 
 
-def enrich_projects(projects: list[dict], today: datetime.date) -> tuple[list[dict], list[str]]:
+def enrich_projects(projects: list[dict], now: datetime.date | datetime.datetime) -> tuple[list[dict], list[str]]:
     enriched = []
     warnings = []
     for project in projects:
         item = dict(project)
-        item["display_band"] = classify_activity(item.get("last", ""), today)
+        item["display_band"] = classify_activity(item.get("last", ""), now)
         item["now"] = None
         path = item.get("path", "")
         if path:
@@ -655,7 +678,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"营地不完整：需要 {pool_path} 和 {shelf_path}", file=sys.stderr)
         return 2
 
-    gen_ts = datetime.datetime.now()
+    gen_ts = datetime.datetime.now().astimezone()
     pool, warn_pool = parse_pool(pool_path.read_text())
     bands, warn_shelf = parse_shelf(shelf_path.read_text())
     flat_projects = flatten_projects(bands)
@@ -672,7 +695,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     profile = parse_self(self_path.read_text()) if self_path.is_file() else {"traits": [], "goals": []}
-    projects, warn_now = enrich_projects(flat_projects, gen_ts.date())
+    projects, warn_now = enrich_projects(flat_projects, gen_ts)
     warnings = warn_pool + warn_shelf + warn_now
 
     html_text = render_html(store, pool, projects, profile, warnings, gen_ts)

@@ -231,6 +231,16 @@ def check_activity_bands() -> None:
     assert camp_status.classify_activity("unknown", today) == "unknown"
     assert camp_status.classify_activity("", today) == "unknown"
 
+    now = datetime.datetime(2026, 8, 14, 12, tzinfo=datetime.timezone.utc)
+    assert camp_status.classify_activity("2026-08-07T12:00:01Z", now) == "riding"
+    assert camp_status.classify_activity("2026-08-07T12:00:00Z", now) == "week"
+    assert camp_status.classify_activity("2026-08-07T20:00:00+08:00", now) == "week"
+    assert camp_status.classify_activity("2026-07-15T12:00:01Z", now) == "week"
+    assert camp_status.classify_activity("2026-07-15T12:00:00Z", now) == "month"
+    assert camp_status.classify_activity("2026-08-14T12:00:01Z", now) == "unknown"
+    assert camp_status.classify_activity("2026-08-07T12:00:00", now) == "unknown"
+    assert camp_status.classify_activity("2026-13-40T99:00:00Z", now) == "unknown"
+
 
 def check_project_enrichment_and_readonly() -> None:
     with_now = make_project(NOW_ZH)
