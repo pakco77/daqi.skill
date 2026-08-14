@@ -81,11 +81,22 @@ def check_scan_pipeline() -> None:
     assert (store / "POOL.md").read_bytes() == pool_bytes
     assert (store / "SHELF.md").read_bytes() == shelf_bytes
     camp = (store / "camp.html").read_text()
-    assert 'data-view="scan"' in camp and "工作区候选" in camp
+    # 扫描入口在账本内（JS 动态按钮），不在场景上
+    assert "扫描 · 找点子 / 找项目" in camp and "camp-scan-open" in camp
+    assert "工作区候选" in camp
     # 颗粒火焰：CSS 燃烧动画 + 降级开关
     assert ".camp-fire-grain" in camp and "camp-grain-shift" in camp
     assert ".camp-sparks" in camp and "camp-spark-rise" in camp
     assert "prefers-reduced-motion" in camp
+    # 马微动 + 风掠过地面/空气
+    assert "camp-horse-breathe" in camp and "camp-horse-ear-l" in camp
+    assert "camp-wind-streaks" in camp and "camp-wind-streak" in camp
+    # Pixel UI 组件层 + 昼夜两套颜色 + 面板滚动 + 弹窗返回键
+    assert "--camp-px-font" in camp and 'data-time="night"' in camp
+    assert ".camp-panel-body { overflow-y: auto" in camp.replace("  ", " ")
+    assert "data-action=\"panel-back\"" in camp
+    # 单一项进度
+    assert "camp-scan-mini" in camp and "camp-scan-chip" in camp
     state = json.loads((store / ".scan-state.json").read_text())
     assert state["phase"] in ("scan", "select") and len(state["candidates"]) == 2
 

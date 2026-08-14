@@ -148,6 +148,12 @@ SCENE_CSS = r"""
     top: 49%;
     width: 16.5%;
     height: 28%;
+    animation: camp-horse-breathe 5.2s steps(6, end) infinite;
+  }
+  @keyframes camp-horse-breathe {
+    0%, 100% { transform: translate3d(0, 0, 0); }
+    35% { transform: translate3d(1px, 2px, 0); }
+    70% { transform: translate3d(-1px, 1px, 0); }
   }
   .camp-horse-head {
     position: absolute;
@@ -173,8 +179,18 @@ SCENE_CSS = r"""
     background: var(--camp-rig-ink);
     clip-path: polygon(50% 0, 100% 100%, 0 82%);
   }
-  .camp-horse-head::before { left: 9px; transform: rotate(-8deg); }
-  .camp-horse-head::after { left: 17px; transform: rotate(12deg); }
+  .camp-horse-head::before { left: 9px; animation: camp-horse-ear-l 9.4s steps(8, end) infinite; }
+  .camp-horse-head::after { left: 17px; animation: camp-horse-ear-r 11.2s steps(8, end) infinite; }
+  @keyframes camp-horse-ear-l {
+    0%, 88%, 100% { transform: rotate(-8deg); }
+    91% { transform: rotate(-16deg); }
+    95% { transform: rotate(-5deg); }
+  }
+  @keyframes camp-horse-ear-r {
+    0%, 90%, 100% { transform: rotate(12deg); }
+    93% { transform: rotate(20deg); }
+    96% { transform: rotate(9deg); }
+  }
   @keyframes camp-horse-head-dip {
     0%, 45%, 100% { transform: rotate(-3deg) translate3d(0, 0, 0); }
     58%, 78% { transform: rotate(12deg) translate3d(1px, 5px, 0); }
@@ -231,10 +247,35 @@ SCENE_CSS = r"""
   .camp-wind-dust i:nth-child(2) { bottom: 24%; animation-delay: -2.2s; }
   .camp-wind-dust i:nth-child(3) { bottom: 9%; animation-delay: -4.6s; }
   .camp-wind-dust i:nth-child(4) { bottom: 38%; animation-delay: -6.7s; }
+  .camp-wind-dust i:nth-child(5) { bottom: 56%; animation-delay: -3.3s; animation-duration: 12s; }
+  .camp-wind-dust i:nth-child(6) { bottom: 72%; animation-delay: -7.1s; animation-duration: 14s; }
   @keyframes camp-wind-dust-cross {
     0% { opacity: 0; transform: translate3d(0, 0, 0); }
     12%, 68% { opacity: .32; }
     100% { opacity: 0; transform: translate3d(520px, -16px, 0); }
+  }
+  /* 风掠过地面：断续风线横扫 + 空气浮尘 */
+  .camp-wind-streaks {
+    left: 0;
+    right: 0;
+    bottom: 3%;
+    height: 8%;
+  }
+  .camp-wind-streaks i {
+    position: absolute;
+    height: 2px;
+    width: 12%;
+    background-image: repeating-linear-gradient(90deg, var(--camp-rig-ink) 0 6px, transparent 6px 14px);
+    opacity: 0;
+    animation: camp-wind-streak 7.4s steps(14, end) infinite;
+  }
+  .camp-wind-streaks i:nth-child(1) { bottom: 10%; animation-delay: -1.2s; }
+  .camp-wind-streaks i:nth-child(2) { bottom: 46%; width: 8%; animation-delay: -3.8s; animation-duration: 8.6s; }
+  .camp-wind-streaks i:nth-child(3) { bottom: 0; width: 15%; animation-delay: -5.4s; }
+  @keyframes camp-wind-streak {
+    0% { opacity: 0; transform: translate3d(-12vw, 0, 0); }
+    10%, 60% { opacity: .4; }
+    100% { opacity: 0; transform: translate3d(105vw, 0, 0); }
   }
 
   .camp-topbar {
@@ -524,6 +565,104 @@ SCENE_CSS = r"""
   .camp-panel-head h2 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: .04em; }
   .camp-panel-head p { margin: 5px 0 0; color: #72726C; font-size: 11px; letter-spacing: .08em; }
   .camp-panel-body { padding: 16px 22px 20px; }
+
+  /* --- Pixel UI 组件层：单色硬边框 + 硬投影；全营只有火有色 --- */
+  .camp-app {
+    --ui-bg: #FAFAF7;
+    --ui-ink: #111111;
+    --ui-soft: #72726C;
+    --ui-border: #C9C9C2;
+    --ui-shadow: #9A9A94;
+    --camp-px-font: "PS2P", "Zpix", ui-monospace, Menlo, monospace;
+  }
+  .camp-app[data-time="night"] {
+    --ui-bg: #0A0A09;
+    --ui-ink: #F5F5F2;
+    --ui-soft: #9A9A94;
+    --ui-border: #3A3A35;
+    --ui-shadow: #1F1F1B;
+  }
+  .camp-panel { border: 3px solid var(--ui-ink); border-radius: 0;
+                background: var(--ui-bg); color: var(--ui-ink);
+                box-shadow: 4px 4px 0 0 var(--ui-shadow); }
+  .camp-panel-head { display: flex; align-items: flex-start; gap: 10px; border-bottom: 2px solid var(--ui-border); }
+  .camp-panel-head-text { min-width: 0; }
+  .camp-panel-head p { color: var(--ui-soft); }
+  .camp-panel-back {
+    flex: none; margin-top: 2px; padding: 4px 10px; cursor: pointer;
+    border: 3px solid var(--ui-ink); border-radius: 0;
+    background: var(--ui-bg); color: var(--ui-ink);
+    font-family: var(--camp-px-font); font-size: 11px;
+    box-shadow: 3px 3px 0 0 var(--ui-shadow);
+  }
+  .camp-panel-back:hover { transform: translate(1px, 1px); box-shadow: -3px -3px 0 0 var(--ui-shadow); }
+  .camp-panel-back:active { transform: translate(3px, 3px); box-shadow: none; }
+  .camp-panel-back[hidden] { display: none; }
+  .camp-panel-body { overflow-y: auto; max-height: calc(72vh - 92px);
+                     scrollbar-width: thin; scrollbar-color: var(--ui-ink) var(--ui-bg); }
+  .camp-panel-body::-webkit-scrollbar { width: 8px; }
+  .camp-panel-body::-webkit-scrollbar-track { background: var(--ui-bg); }
+  .camp-panel-body::-webkit-scrollbar-thumb { background: var(--ui-ink); border: 2px solid var(--ui-bg); }
+  .camp-tag {
+    border: 3px solid var(--ui-border); border-radius: 0;
+    background: var(--ui-bg); color: var(--ui-ink);
+    box-shadow: 3px 3px 0 0 var(--ui-shadow);
+    font-family: var(--camp-px-font);
+  }
+  .camp-tag:hover { border-color: var(--ui-ink); }
+  .camp-tag[aria-pressed="true"] {
+    background: var(--ui-ink); color: var(--ui-bg); border-color: var(--ui-ink);
+    box-shadow: -3px -3px 0 0 var(--ui-shadow);
+  }
+  .camp-tag[aria-pressed="true"]::before {
+    background-color: var(--ui-bg);
+    background-image: repeating-conic-gradient(var(--ui-ink) 0 25%, transparent 0 50%);
+  }
+  .camp-entry, .camp-project {
+    border: 2px solid var(--ui-border); border-radius: 0;
+    background: var(--ui-bg); color: var(--ui-ink);
+  }
+  .camp-project:hover, .camp-project:focus-visible { border-color: var(--ui-ink); background: var(--ui-ink); color: var(--ui-bg); }
+  .camp-item-meta, .camp-item-time { color: var(--ui-soft); }
+  .camp-project:hover .camp-item-meta { color: var(--ui-border); }
+  .camp-empty { border: 2px dashed var(--ui-border); color: var(--ui-soft); background: transparent; }
+  .camp-pages button {
+    border: 3px solid var(--ui-border); border-radius: 0;
+    background: var(--ui-bg); color: var(--ui-ink);
+    box-shadow: 2px 2px 0 0 var(--ui-shadow);
+    font-family: var(--camp-px-font);
+  }
+  .camp-pages button:hover:not(:disabled) { background: var(--ui-ink); color: var(--ui-bg); border-color: var(--ui-ink); }
+  .camp-pages span { color: var(--ui-soft); }
+  .camp-now section { border-bottom-color: var(--ui-border); }
+  .camp-now h3 { color: var(--ui-soft); }
+  .camp-trait { border-bottom-color: var(--ui-border); }
+  .camp-notice { border: 2px solid var(--ui-ink); background: var(--ui-bg); color: var(--ui-ink); }
+  .camp-scan-bar { border: 2px solid var(--ui-ink); background: var(--ui-bg); }
+  .camp-scan-fill { background: var(--ui-ink);
+                    background-image: repeating-conic-gradient(var(--ui-bg) 0 25%, transparent 0 50%); }
+  .camp-scan-phase { border: 2px solid var(--ui-border); background: var(--ui-bg); color: var(--ui-ink);
+                     font-family: var(--camp-px-font); }
+  .camp-scan-phase.on { background: var(--ui-ink); color: var(--ui-bg); border-color: var(--ui-ink); }
+  .camp-scan-phase.done { border-color: var(--ui-ink); }
+  .camp-scan-head { color: var(--ui-soft); }
+  .camp-scan-row { border: 2px solid var(--ui-border); background: var(--ui-bg); }
+  .camp-scan-cmd input { border: 2px solid var(--ui-border); background: var(--ui-bg); color: var(--ui-ink); }
+  .camp-scan-cmd button {
+    border: 3px solid var(--ui-ink); border-radius: 0;
+    background: var(--ui-bg); color: var(--ui-ink);
+    box-shadow: 3px 3px 0 0 var(--ui-shadow);
+    font-family: var(--camp-px-font);
+  }
+  .camp-scan-cmd button:hover { background: var(--ui-ink); color: var(--ui-bg); box-shadow: -3px -3px 0 0 var(--ui-shadow); }
+  .camp-scan-mini { margin-top: 6px; height: 10px; border: 1px solid var(--ui-ink); background: var(--ui-bg); max-width: 340px; }
+  .camp-scan-mini-fill { height: 100%; background: var(--ui-ink);
+                         background-image: repeating-conic-gradient(var(--ui-bg) 0 25%, transparent 0 50%);
+                         background-size: 4px 4px; }
+  .camp-scan-chip { font-family: var(--camp-px-font); font-size: 10px; padding: 1px 7px;
+                    border: 2px solid var(--ui-border); white-space: nowrap; }
+  .camp-scan-chip.doing { background: var(--ui-ink); color: var(--ui-bg); border-color: var(--ui-ink); }
+  .camp-scan-chip.done { color: var(--ui-soft); border-color: var(--ui-border); }
   .camp-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
   .camp-tag {
     position: relative;
@@ -654,6 +793,7 @@ SCENE_JS = r"""
   const panelSub = camp.querySelector('.camp-panel-sub');
   const panelBody = camp.querySelector('.camp-panel-body');
   const backButton = camp.querySelector('[data-action="back"]');
+  const panelBack = camp.querySelector('[data-action="panel-back"]');
   const live = camp.querySelector('[aria-live]');
   const zoomLayer = camp.querySelector('.camp-zoom-layer');
   const PAGE_SIZE = 5;
@@ -747,6 +887,11 @@ SCENE_JS = r"""
   function renderLedger() {
     panelTitle.textContent = '营地账本';
     panelSub.textContent = '情报 · 点子 · 计划';
+    const scanBtn = make('button', 'camp-panel-back camp-scan-open', '扫描 · 找点子 / 找项目');
+    scanBtn.type = 'button';
+    scanBtn.style.marginBottom = '12px';
+    scanBtn.addEventListener('click', () => openView('scan'));
+    panelBody.append(scanBtn);
     const labels = {intel: '情报', idea: '点子', plan: '计划'};
     const tags = Object.entries(labels).map(([key, label]) => ({
       key, label, count: payload.ledger.filter((item) => item.stage === key).length
@@ -923,6 +1068,7 @@ SCENE_JS = r"""
         if (commandInput) commandInput.value = sel.length ? `达奇：扫描 ${sel.join(',')}` : '达奇：扫描';
       };
       scan.candidates.forEach((c, i) => {
+        const item = (Array.isArray(scan.items) && scan.items.find((it) => it.path === c.path)) || {};
         const row = make('label', 'camp-scan-row');
         const box = document.createElement('input');
         box.type = 'checkbox';
@@ -931,9 +1077,21 @@ SCENE_JS = r"""
         box.addEventListener('change', refreshCommand);
         row.append(box);
         const info = make('div', '');
-        info.append(make('div', 'camp-item-title', `${i + 1}. ${c.path}`));
+        const head = make('div', 'camp-scan-head-line');
+        head.append(make('span', 'camp-item-title', `${i + 1}. ${c.path}`));
+        if (item.status === 'reading') head.append(make('span', 'camp-scan-chip doing', '读取中'));
+        if (item.status === 'done') head.append(make('span', 'camp-scan-chip done', '完成'));
+        info.append(head);
         info.append(make('div', 'camp-item-time camp-mono',
           `${(c.agents || []).join(' · ')} · ${c.last_active || ''} · ${c.sessions || 0} 会话${c.in_shelf ? ' · 已在马厩' : ''}`));
+        const pct = Number(item.percent || 0);
+        if (item.status === 'reading' && pct > 0) {
+          const mini = make('div', 'camp-scan-mini');
+          const fill = make('div', 'camp-scan-mini-fill');
+          fill.style.width = `${Math.max(0, Math.min(100, pct))}%`;
+          mini.append(fill);
+          info.append(mini);
+        }
         row.append(info);
         list.append(row);
       });
@@ -991,6 +1149,7 @@ SCENE_JS = r"""
     camp.dataset.view = state.view;
     camp.dataset.time = resolvedTime();
     backButton.hidden = state.view === 'overview';
+    panelBack.hidden = state.view === 'overview';
     panel.hidden = state.view === 'overview';
     camp.querySelectorAll('.camp-feature').forEach((button) => {
       const available = state.view === 'overview';
@@ -1016,7 +1175,9 @@ SCENE_JS = r"""
   }
 
   function goBackOneLevel() {
-    if (state.view === 'stable' && state.stableDepth === 'now') {
+    if (state.view === 'scan') {
+      state.view = 'ledger';
+    } else if (state.view === 'stable' && state.stableDepth === 'now') {
       state.stableDepth = 'list';
       selectedProject = null;
     } else if (state.view !== 'overview') {
@@ -1030,6 +1191,7 @@ SCENE_JS = r"""
     button.addEventListener('click', () => openView(button.dataset.view));
   });
   backButton.addEventListener('click', goBackOneLevel);
+  panelBack.addEventListener('click', goBackOneLevel);
   camp.querySelectorAll('[data-time-mode]').forEach((button) => {
     button.addEventListener('click', () => {
       state.timeMode = button.dataset.timeMode;
@@ -1344,7 +1506,8 @@ def render_html(store: Path, pool: list[dict], projects: list[dict], profile: di
 
       <div class="camp-motion-rig camp-treetop-rig camp-treetop-left"><i></i><i></i></div>
       <div class="camp-motion-rig camp-treetop-rig camp-treetop-right"><i></i><i></i></div>
-      <div class="camp-motion-rig camp-wind-dust"><i></i><i></i><i></i><i></i></div>
+      <div class="camp-motion-rig camp-wind-dust"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="camp-motion-rig camp-wind-streaks"><i></i><i></i><i></i></div>
       <div class="camp-motion-rig camp-horse-rig">
         <i class="camp-horse-head"></i>
         <i class="camp-horse-hoof"></i>
@@ -1376,9 +1539,6 @@ def render_html(store: Path, pool: list[dict], projects: list[dict], profile: di
     </div>
   </header>
 
-  <button type="button" class="camp-feature camp-feature-scan" data-view="scan" aria-expanded="false">
-    <strong>扫描</strong><span>找点子 · 找项目</span>
-  </button>
   <button type="button" class="camp-feature camp-feature-ledger" data-view="ledger" aria-expanded="false">
     <strong>营地账本</strong><span>情报 · 点子 · 计划</span>
   </button>
@@ -1392,8 +1552,11 @@ def render_html(store: Path, pool: list[dict], projects: list[dict], profile: di
   <button type="button" class="camp-back" data-action="back" hidden>返回上一层 ↓</button>
   <section class="camp-panel" tabindex="-1" aria-labelledby="camp-panel-title" hidden>
     <header class="camp-panel-head">
-      <h2 class="camp-panel-title" id="camp-panel-title"></h2>
-      <p class="camp-panel-sub"></p>
+      <button type="button" class="camp-panel-back" data-action="panel-back">← 返回</button>
+      <div class="camp-panel-head-text">
+        <h2 class="camp-panel-title" id="camp-panel-title"></h2>
+        <p class="camp-panel-sub"></p>
+      </div>
     </header>
     <div class="camp-panel-body"></div>
   </section>

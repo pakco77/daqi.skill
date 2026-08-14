@@ -357,11 +357,13 @@ def main(argv: Optional[list[str]] = None) -> int:
     proposals: list[dict] = []
     for index, cand in enumerate(picked):
         items[index]["status"] = "reading"
+        items[index]["percent"] = 8
         tick(store, state, percent=30 + int(45 * index / max(total, 1)),
              log=f"读取 {cand['path']}（{args.depth}）")
         previews = read_context(Path(cand["path"]), read_bytes)
         findings: list[dict] = []
         if args.depth == "deep":
+            items[index]["percent"] = 55
             tick(store, state, percent=30 + int(45 * (index + 0.5) / max(total, 1)),
                  log=f"大脑提炼 {cand['path']}（{cfg['llm']['model']}）")
             findings = call_brain(cfg, previews)
@@ -378,6 +380,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             f["source"] = cand["path"]
         proposals.extend(findings)
         items[index]["status"] = "done"
+        items[index]["percent"] = 100
         tick(store, state, percent=30 + int(45 * (index + 1) / max(total, 1)),
              log=f"完成 {cand['path']}：{len(findings)} 条")
 

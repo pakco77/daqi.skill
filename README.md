@@ -234,7 +234,9 @@ Daqi: wrap up
 Daqi: camp / count / camp view
 ```
 
-Daqi renders the camp as one desktop-first viewport. Click the left **Camp ledger** for intel/idea/plan, the right **Stables** for projects, last Agent, and “where this job stands,” or the central **Fire** for the profile you explicitly confirmed in `SELF.md`. Agent attribution appears only in the Stables. Scrolling down or pressing `Esc` returns exactly one level at a time.
+Daqi renders the camp as one desktop-first viewport. Click the left **Camp ledger** for intel/idea/plan — its **Scan** entry sweeps Agent history for ideas and projects (tick candidates, per-item progress, copy commands). The right **Stables** shows projects, last Agent, and “where this job stands”; the central **Fire** shows the profile you explicitly confirmed in `SELF.md`. Agent attribution appears only in the Stables. Scrolling down or pressing `Esc` returns exactly one level at a time.
+
+Panel components follow Pixel UI: 3px hard borders, square corners, bottom-right hard block shadows, checker selection, with cream/ink monochrome themes switching with day and night (only the fire has color); panels scroll and carry a built-in back button. In the scene, the fire gains grain shift and rising sparks, the horse breathes and twitches its ears, and wind sweeps the ground (dashed streaks) and air (drifting dust).
 
 The page uses the browser's local timezone: 06:00–18:00 resolves to the day scene, otherwise the night scene. Day/night can also be selected manually and survives reloads. Its **Mono Dither UI / Grayscale Dither Archive** system pairs a darkened 1-bit Floyd–Steinberg night scene with a four-level Bayer 4×4 day scene, compact cream paper panels, 1px borders, inverse hovers, and small checker selection marks. The bitmaps stay static: small CSS-only overlay rigs animate the amber fire and smoke, horse head and hoof, hoof dust, treetop sway, and passing ground dust without cloning the full scene. Wheel-forward zooms the pointed scene location from 100% up to 120%; wheel-back first restores 100%, then returns one interaction level. Every ambient animation honors `prefers-reduced-motion`.
 
