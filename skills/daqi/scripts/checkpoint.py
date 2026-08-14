@@ -20,7 +20,7 @@ import tempfile
 from collections.abc import Mapping
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Iterator
+from typing import Any, Callable, Iterator, Optional
 
 
 MAX_NOW_BYTES = 8192
@@ -55,7 +55,7 @@ _DAQI_SCRIPT_SUFFIXES = {
     "adapter": "/skills/daqi/scripts/bootup-hook.sh",
     "guard": "/skills/daqi/scripts/permission_guard.py",
 }
-_MetadataSnapshot = tuple[int, int, bytes | None]
+_MetadataSnapshot = tuple[int, int, Optional[bytes]]
 
 
 def normalize_field(value: str) -> str:

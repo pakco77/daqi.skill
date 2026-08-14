@@ -214,6 +214,7 @@ Daqi: I noticed...
 Daqi: ride out
 Daqi: camp
 Daqi: organize this existing project /path/to/project
+Daqi: organize stable <project>
 Daqi: wrap up
 
 达奇：开工
@@ -237,6 +238,14 @@ Daqi renders the camp as one desktop-first viewport. Click the left **Camp ledge
 The page uses the browser's local timezone: 06:00–18:00 resolves to the day scene, otherwise the night scene. Day/night can also be selected manually and survives reloads. Its **Mono Dither UI / Grayscale Dither Archive** system pairs a darkened 1-bit Floyd–Steinberg night scene with a four-level Bayer 4×4 day scene, compact cream paper panels, 1px borders, inverse hovers, and small checker selection marks. The bitmaps stay static: small CSS-only overlay rigs animate the amber fire and smoke, horse head and hoof, hoof dust, treetop sway, and passing ground dust without cloning the full scene. Wheel-forward zooms the pointed scene location from 100% up to 120%; wheel-back first restores 100%, then returns one interaction level. Every ambient animation honors `prefers-reduced-motion`.
 
 The result remains one offline, self-contained `~/.daqi/camp.html`. The generator reads `POOL.md`, `SHELF.md`, optional `SELF.md`, and only the exact `00_Context/NOW.md` below each project path recorded in SHELF. It never searches sibling projects or modifies an input. Generation is rejected if `--out` aliases any input directly, through a symlink, or through a hardlink.
+
+## One-click stable organization
+
+```text
+Daqi: organize stable <project>
+```
+
+Resolves the project's real path from SHELF, inventories it read-only, then proposes a minimal move plan (skeleton dirs + high-confidence moves + a keep-for-judgment list). Nothing moves until you confirm; every move is written to `90_History/cleanup-log.md` and nothing is ever deleted.
 
 ## Local data logic
 

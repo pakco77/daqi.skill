@@ -16,7 +16,10 @@ import stat
 import subprocess
 import sys
 import tempfile
-import tomllib
+try:
+    import tomllib
+except ImportError:  # Python < 3.11: conservative inline-config check below
+    tomllib = None
 from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any, NamedTuple
@@ -333,6 +336,24 @@ def _trusted_file_at(
     return raw
 
 
+def _check_inline_config(config_raw: bytes) -> None:
+    """Reject inline hooks config; project_config_invalid on malformed TOML."""
+    if tomllib is not None:
+        try:
+            inline = tomllib.loads(config_raw.decode("utf-8"))
+        except tomllib.TOMLDecodeError as error:
+            raise ValueError("project_config_invalid") from error
+        if "hooks" in inline:
+            raise ValueError("inline_hooks_unsupported")
+        return
+    # Python < 3.11 shim: no TOML parser is available. Conservatively reject
+    # any [hooks*] table header; unparsable TOML is tolerated rather than guessed.
+    for line in config_raw.decode("utf-8").splitlines():
+        stripped = line.strip()
+        if stripped.startswith("[hooks") or stripped.startswith("[[hooks"):
+            raise ValueError("inline_hooks_unsupported")
+
+
 def _read_project_config(root: Path) -> dict[str, object]:
     directory_path = root / ".codex"
     directory = _trusted_directory(directory_path, "hooks_untrusted")
@@ -352,11 +373,9 @@ def _read_project_config(root: Path) -> dict[str, object]:
         raise ValueError("hooks_invalid")
     if config_raw is not None:
         try:
-            inline = tomllib.loads(config_raw.decode("utf-8"))
-        except (UnicodeDecodeError, tomllib.TOMLDecodeError) as error:
+            _check_inline_config(config_raw)
+        except UnicodeDecodeError as error:
             raise ValueError("project_config_invalid") from error
-        if "hooks" in inline:
-            raise ValueError("inline_hooks_unsupported")
     return config
 
 
@@ -1004,11 +1023,9 @@ def _codex_setup_state(
         os.close(descriptor)
     if config_raw is not None:
         try:
-            inline = tomllib.loads(config_raw.decode("utf-8"))
-        except (UnicodeDecodeError, tomllib.TOMLDecodeError) as error:
+            _check_inline_config(config_raw)
+        except UnicodeDecodeError as error:
             raise ValueError("project_config_invalid") from error
-        if "hooks" in inline:
-            raise ValueError("inline_hooks_unsupported")
     state = _config_file(
         root,
         ".codex/hooks.json",

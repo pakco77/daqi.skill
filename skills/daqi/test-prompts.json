@@ -196,6 +196,17 @@
     ]
   },
   {
+    "id": "organize-stable",
+    "prompt": "达奇：整理马厩 daqi.skill",
+    "precondition": "SHELF contains a daqi.skill row with a real path and the root is readable",
+    "expected": [
+      "Resolve the project path from SHELF instead of guessing",
+      "Run organize_stable.py preview and show the move plan before moving anything",
+      "Wait for one confirmation before applying; keep Medium/Low items in place",
+      "Write every move to the cleanup log and delete nothing"
+    ]
+  },
+  {
     "id": "deferred-project-home",
     "prompt": "中文，稍后设置",
     "precondition": "First use with no SELF store",

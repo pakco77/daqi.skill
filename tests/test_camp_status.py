@@ -1,5 +1,7 @@
 """Read-only camp view script contract tests."""
 
+from __future__ import annotations
+
 import datetime
 import importlib.util
 import os

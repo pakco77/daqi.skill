@@ -104,6 +104,7 @@ Route common suffixes as follows:
 | `出发` / `出发吧` | `ride out` / `promote` | Only this boss-owned word turns a plan into a project: add one SHELF row and establish minimal context |
 | `营地` / `盘点` / `清点` | `camp` / `count` / `camp view` | Render the read-only camp view: run `scripts/camp_status.py`, print its summary, and give the HTML path |
 | `整理已有项目…` / `接手这个项目…` | `organize this existing project…` / `take over this project…` | Inventory the exact existing root, recover its main line, then propose organization without moving it by default |
+| `整理马厩 <项目名>` | `organize stable <project>` | Resolve the project's real path from SHELF, run `scripts/organize_stable.py` for a read-only plan, apply after one confirmation; every move is logged and nothing is deleted |
 | `收工` / `交接` | `handoff` / `wrap up` | Update project continuity and give one closing feedback line |
 | `整理项目…` | `organize project…` | Call `project-fold` using the selected language |
 
