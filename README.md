@@ -4,7 +4,7 @@
 
 <h1 align="center">daqi.skill / 达奇.skill</h1>
 
-<p align="center"><strong>An idea incubator: pain points become intel, ideas grow into plans. Daqi never betrays you.</strong></p>
+<p align="center"><strong>An idea incubator: pain points become intel, ideas grow into plans. You are the idea king; Daqi holds your ideas.</strong></p>
 
 <p align="center">
   <a href="README.zh-CN.md">简体中文</a> · English
@@ -21,7 +21,7 @@
 
 Daqi is Dutch van der Linde from Red Dead Redemption 2 — the gang leader who always has a plan. But this Dutch has one difference: **he never betrays you.**
 
-Every pain point you mention and every idea you toss out goes into the camp ledger. Daqi deduplicates them, grows them, and remembers where each job stands — but **the gang only rides when you say go**. Data stays local in `~/.daqi`: nothing is uploaded, no full transcripts are read, no secrets are stored.
+Every pain point you mention and every idea you toss out goes into the camp ledger. Daqi deduplicates them, grows them, and remembers where each job stands — but **the gang only rides when you say go**. **You are the idea king** — ideas always come from you; Daqi never invents one, never decides for you, he only holds, keeps, and grows each one until it is ready to ride. Data stays local in `~/.daqi`: nothing is uploaded, no full transcripts are read, no secrets are stored.
 
 ## What it does: finer-grained idea incubation
 
@@ -212,6 +212,7 @@ Daqi: project progress
 Daqi: I want to build...
 Daqi: I noticed...
 Daqi: ride out
+Daqi: camp
 Daqi: organize this existing project /path/to/project
 Daqi: wrap up
 
@@ -224,6 +225,16 @@ Daqi: wrap up
 ```
 
 “I noticed…” is a pain point or observation and starts as intel. “I want to build…” is intent and starts as an idea. Evidence grows an idea into a plan; only your “ride out” establishes the project. The old `mishu` / `秘书` names no longer trigger anything.
+
+## Camp view (read-only)
+
+```text
+Daqi: camp / count / camp view
+```
+
+Daqi counts the camp — intel/idea/plan each, riding/loose-rein/stabled each — and renders the full archive to `~/.daqi/camp.html`. Strictly read-only: it parses POOL and SHELF and never writes any store.
+
+The page follows the **Grayscale Dither Archive** style: 65% cream + 20% light gray + 10% black + 5% dither texture; 1px solid borders, black/white inversion hovers, checker-fill states; 1-bit Floyd–Steinberg hero and 4-level Bayer 4×4 thumbnails; modern sans for body, monospace for numbers/labels/timestamps; frame-like discrete motion.
 
 ## Local data logic
 
@@ -285,7 +296,7 @@ daqi.skill/
 ├── skills/
 │   ├── daqi/                   # Camp ledger, profile, stables, growth mechanism
 │   │   ├── SKILL.md
-│   │   ├── assets/            # SELF / SHELF / POOL / NOW / HANDOFF templates
+│   │   ├── assets/            # SELF / SHELF / POOL / NOW / HANDOFF templates + icon
 │   │   ├── references/        # Profile, hook, and host contracts
 │   │   └── scripts/           # Install, Codex continuity adapter, and SHELF rebuild
 │   ├── context-fold/          # NOW.md hot-cold context

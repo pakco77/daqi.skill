@@ -284,6 +284,8 @@ def check_skill_contracts() -> None:
         "情报",
         "点子",
         "计划",
+        "营地",
+        "盘点",
     ):
         assert trigger in daqi_text
     for scenario in (
@@ -298,6 +300,7 @@ def check_skill_contracts() -> None:
         "agent-compatibility.md",
         "project-roots.md",
         "automatic-continuity.md",
+        "camp-view.md",
     ):
         assert reference in daqi_text
         assert (DAQI / "references" / reference).exists()
