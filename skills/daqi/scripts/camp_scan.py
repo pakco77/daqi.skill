@@ -143,17 +143,47 @@ CONTEXT_GLOB = ("NOW.md", "README.md", "README.zh-CN.md", "SKILL.md")
 
 
 def read_context(root: Path, max_bytes: int) -> list[dict]:
-    """Project context files only — never session transcripts."""
-    files = []
-    for name in CONTEXT_GLOB:
-        p = root / name
-        if p.is_file():
+    """Project context files only — never session transcripts.
+
+    Looks at root contract files, one level of containers, and nested repo
+    roots (e.g. 00_Context/NOW.md, 10_Source/<repo>/README.md), skipping
+    dependency caches. Budget is shared across at most 8 files.
+    """
+    skip = {".git", "node_modules", ".venv", "venv", "__pycache__", ".next", "dist", "build",
+            "90_History", "90_历史"}
+    files: list[Path] = []
+    seen: set[Path] = set()
+
+    def add(p: Path) -> None:
+        if p.is_file() and p not in seen:
+            seen.add(p)
             files.append(p)
-    docs = sorted((root / "20_Docs").glob("*.md")) if (root / "20_Docs").is_dir() else []
-    files = files[:2] + docs[: MAX_FILES_PER_WORKSPACE - 2]
+
+    def scan_docs(d: Path) -> None:
+        for sub in ("00_Context", "20_Docs", "docs", "20_文档"):
+            sd = d / sub
+            if sd.is_dir():
+                for p in sorted(sd.rglob("*.md"))[:3]:
+                    add(p)
+
+    for name in CONTEXT_GLOB:
+        add(root / name)
+    level1 = [d for d in sorted(root.iterdir())
+              if d.is_dir() and d.name not in skip and not d.name.startswith(".")]
+    for d in level1:
+        for name in CONTEXT_GLOB:
+            add(d / name)
+        scan_docs(d)
+    for d in level1:
+        for g in sorted(d.iterdir()):
+            if not g.is_dir() or g.name in skip or g.name.startswith("."):
+                continue
+            for name in CONTEXT_GLOB:
+                add(g / name)
+            scan_docs(g)
     out = []
     budget = max_bytes
-    for p in files:
+    for p in files[:8]:
         if budget <= 0:
             break
         try:
@@ -292,6 +322,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     ap.add_argument("--select", help="逗号分隔的工作区名或路径片段，单选/多选")
     ap.add_argument("--depth", choices=("shallow", "deep"), default="shallow")
     ap.add_argument("--commit", metavar="TOKEN", help="确认方案后提交（写 POOL/SHELF）")
+    ap.add_argument("--proposals", metavar="FILE", help="跳过读取/提炼，直接采用给定候选 JSON（agent 大脑产物）")
+    ap.add_argument("--previews-only", action="store_true", help="只打印所选工作区的上下文摘录（供 agent 大脑提炼），不写任何 store")
     args = ap.parse_args(argv)
 
     store = Path(args.store)
@@ -344,6 +376,13 @@ def main(argv: Optional[list[str]] = None) -> int:
         print("没有匹配的工作区。", file=sys.stderr)
         return 2
 
+    if args.previews_only:
+        payload = []
+        for cand in picked:
+            payload.append({"path": cand["path"], "files": read_context(Path(cand["path"]), DEEP_BYTES)})
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return 0
+
     state["phase"] = "read"
     items = [{"path": c["path"], "status": "pending"} for c in picked]
     state["items"] = items
@@ -355,34 +394,59 @@ def main(argv: Optional[list[str]] = None) -> int:
         args.depth = "shallow"
 
     proposals: list[dict] = []
-    for index, cand in enumerate(picked):
-        items[index]["status"] = "reading"
-        items[index]["percent"] = 8
-        tick(store, state, percent=30 + int(45 * index / max(total, 1)),
-             log=f"读取 {cand['path']}（{args.depth}）")
-        previews = read_context(Path(cand["path"]), read_bytes)
-        findings: list[dict] = []
-        if args.depth == "deep":
-            items[index]["percent"] = 55
-            tick(store, state, percent=30 + int(45 * (index + 0.5) / max(total, 1)),
-                 log=f"大脑提炼 {cand['path']}（{cfg['llm']['model']}）")
-            findings = call_brain(cfg, previews)
-        if not findings:
-            findings = heuristic(Path(cand["path"]), previews)
-        for f in findings:
+    if args.proposals:
+        try:
+            injected = json.loads(Path(args.proposals).read_text())
+        except (OSError, json.JSONDecodeError) as error:
+            print(f"无法读取候选 JSON：{error}", file=sys.stderr)
+            return 2
+        if not isinstance(injected, list):
+            print("候选 JSON 必须是数组", file=sys.stderr)
+            return 2
+        for f in injected:
+            if not isinstance(f, dict):
+                continue
             if f.get("type") not in ("intel", "idea", "project"):
                 f["type"] = "idea"
-            f.setdefault("title", Path(cand["path"]).name)
+            f.setdefault("title", "")
             f.setdefault("line", "")
             f.setdefault("why_now", "")
             f.setdefault("evidence", "")
             f.setdefault("probe", "")
-            f["source"] = cand["path"]
-        proposals.extend(findings)
-        items[index]["status"] = "done"
-        items[index]["percent"] = 100
-        tick(store, state, percent=30 + int(45 * (index + 1) / max(total, 1)),
-             log=f"完成 {cand['path']}：{len(findings)} 条")
+            proposals.append(f)
+        for item in items:
+            item["status"] = "done"
+            item["percent"] = 100
+        tick(store, state, percent=80, log=f"采用 agent 大脑候选：{len(proposals)} 条")
+    else:
+        for index, cand in enumerate(picked):
+            items[index]["status"] = "reading"
+            items[index]["percent"] = 8
+            tick(store, state, percent=30 + int(45 * index / max(total, 1)),
+                 log=f"读取 {cand['path']}（{args.depth}）")
+            previews = read_context(Path(cand["path"]), read_bytes)
+            findings: list[dict] = []
+            if args.depth == "deep":
+                items[index]["percent"] = 55
+                tick(store, state, percent=30 + int(45 * (index + 0.5) / max(total, 1)),
+                     log=f"大脑提炼 {cand['path']}（{cfg['llm']['model']}）")
+                findings = call_brain(cfg, previews)
+            if not findings:
+                findings = heuristic(Path(cand["path"]), previews)
+            for f in findings:
+                if f.get("type") not in ("intel", "idea", "project"):
+                    f["type"] = "idea"
+                f.setdefault("title", Path(cand["path"]).name)
+                f.setdefault("line", "")
+                f.setdefault("why_now", "")
+                f.setdefault("evidence", "")
+                f.setdefault("probe", "")
+                f["source"] = cand["path"]
+            proposals.extend(findings)
+            items[index]["status"] = "done"
+            items[index]["percent"] = 100
+            tick(store, state, percent=30 + int(45 * (index + 1) / max(total, 1)),
+                 log=f"完成 {cand['path']}：{len(findings)} 条")
 
     state["phase"] = "brain" if args.depth == "deep" else "commit"
     proposals = dedupe_against_stores(store, proposals)

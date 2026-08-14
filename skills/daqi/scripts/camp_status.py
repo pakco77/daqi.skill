@@ -1149,6 +1149,37 @@ SCENE_JS = r"""
     if (scan.applied) panelBody.append(make('div', 'camp-notice', `已于 ${scan.applied} 写入账本与马厩`));
   }
 
+  function renderSettings() {
+    panelTitle.textContent = '设置';
+    panelSub.textContent = '达奇的大脑';
+    const s = payload.settings || {};
+    panelBody.append(make('div', 'camp-scan-head',
+      `模型 ${s.model || '—'} · 接口 ${s.base_url || '—'} · ${s.has_key ? '已配置 key' : '未配置 key'}`));
+    panelBody.append(make('div', 'camp-scan-head', 'API Key — 只写本机 ~/.daqi/config.json，不进聊天'));
+    const row = make('div', 'camp-scan-cmd');
+    const input = document.createElement('input');
+    input.type = 'password';
+    input.placeholder = 'sk-…';
+    const saveBtn = make('button', '', '保存');
+    saveBtn.type = 'button';
+    saveBtn.addEventListener('click', async () => {
+      const flash = (t) => { saveBtn.textContent = t; setTimeout(() => { saveBtn.textContent = '保存'; }, 1500); };
+      try {
+        const res = await fetch('http://127.0.0.1:8799/set-key', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ api_key: input.value })
+        });
+        const data = await res.json();
+        if (data && data.ok) { flash('已保存'); input.value = ''; }
+        else flash('保存失败');
+      } catch (_) { flash('桥未启动'); }
+    });
+    row.append(input, saveBtn);
+    panelBody.append(row);
+    panelBody.append(make('div', 'camp-item-time camp-mono', '桥未启动时，对达奇说「开桥」。深读（deep）由达奇用此模型提炼点子。'));
+  }
+
   function renderPanel() {
     panelBody.replaceChildren();
     panel.className = `camp-panel camp-panel-${state.view}`;
@@ -1156,6 +1187,7 @@ SCENE_JS = r"""
     if (state.view === 'stable') renderStable();
     if (state.view === 'self') renderProfile();
     if (state.view === 'scan') renderScan();
+    if (state.view === 'settings') renderSettings();
   }
 
   function renderState() {
@@ -1206,6 +1238,7 @@ SCENE_JS = r"""
   });
   backButton.addEventListener('click', goBackOneLevel);
   panelBack.addEventListener('click', goBackOneLevel);
+  camp.querySelector('[data-action="settings"]').addEventListener('click', () => openView('settings'));
   camp.querySelectorAll('[data-time-mode]').forEach((button) => {
     button.addEventListener('click', () => {
       state.timeMode = button.dataset.timeMode;
@@ -1489,12 +1522,25 @@ def render_html(store: Path, pool: list[dict], projects: list[dict], profile: di
             scan_state = json.loads(scan_path.read_text())
         except (OSError, json.JSONDecodeError):
             scan_state = None
+    # settings expose model/base_url/has_key only — never the key itself
+    settings = {"model": "DeepSeek-v4-flash0731", "base_url": "https://api.deepseek.com", "has_key": False}
+    cfg_path = store / "config.json"
+    if cfg_path.is_file():
+        try:
+            cfg = json.loads(cfg_path.read_text())
+            llm = cfg.get("llm", {}) if isinstance(cfg, dict) else {}
+            settings["model"] = str(llm.get("model", settings["model"]))
+            settings["base_url"] = str(llm.get("base_url", settings["base_url"]))
+            settings["has_key"] = bool(str(llm.get("api_key", "")).strip())
+        except (OSError, json.JSONDecodeError):
+            pass
     payload = {
         "ledger": pool,
         "projects": projects,
         "profile": profile,
         "warnings": warnings,
         "scan": scan_state,
+        "settings": settings,
         "generated_at": gen_ts.isoformat(),
     }
     payload_json = json.dumps(payload, ensure_ascii=False).replace("</", "<\\/")
@@ -1549,6 +1595,7 @@ def render_html(store: Path, pool: list[dict], projects: list[dict], profile: di
       <button type="button" data-action="time-auto" data-time-mode="auto">自动</button>
       <button type="button" data-action="time-day" data-time-mode="day">白天</button>
       <button type="button" data-action="time-night" data-time-mode="night">夜晚</button>
+      <button type="button" data-action="settings">设置</button>
       <span class="camp-local-time camp-mono" aria-label="你的本地时间"></span>
     </div>
   </header>
