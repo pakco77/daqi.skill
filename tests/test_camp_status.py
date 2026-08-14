@@ -449,12 +449,36 @@ def check_counts_and_readonly() -> None:
     assert "只读" in result.stdout
 
     html = out.read_text()
-    assert "情报 2 · 点子 1 · 计划 1" in html
-    assert "在跑 1 · 松了 0 · 歇马 1" in html
-    assert "点子王" in html
-    assert "data:image/png" in html
+    assert "营地账本" in html
+    assert "情报 · 点子 · 计划" in html
+    assert "马厩" in html and "干一票" in html
+    assert ">火<" in html and "你是谁？" in html
+    assert "7 天没动" in html and "30 天没动" in html
+    assert "达奇对你的认知" in html
+    assert "这票到哪了" in html
+    assert html.count("data:image/png;base64,") >= 2
     assert "/work/a" in html and "/work/b" in html
-    assert "READ-ONLY" in html
+    assert "Codex" in html and "Qwen" in html
+    assert "POOL / CAMP LEDGER" not in html
+    assert "LAST_SEEN · NO AGENT" not in html
+    assert "READ-ONLY" not in html
+
+    for hook in (
+        'data-view="ledger"',
+        'data-view="stable"',
+        'data-view="self"',
+        'data-action="back"',
+        'data-action="time-auto"',
+        'data-action="time-day"',
+        'data-action="time-night"',
+    ):
+        assert hook in html
+    assert 'id="camp-data"' in html
+    assert "prefers-reduced-motion" in html
+    assert "localStorage" in html
+    assert "goBackOneLevel" in html
+    assert "wheelLocked" in html
+    assert "aria-live" in html
 
     # the script must never modify the stores
     assert (store / "POOL.md").read_bytes() == pool_bytes
@@ -470,8 +494,9 @@ def check_empty() -> None:
     assert "情报 0 · 点子 0 · 计划 0" in result.stdout
     assert "账本和马厩还是空的" in result.stdout
     html = (store / "camp.html").read_text()
-    assert "账本还是空的" in html
-    assert "马厩还是空的" in html
+    assert "这个阶段还没有条目" in html
+    assert "这个时间段没有项目" in html
+    assert "现在还认不出你" in html
 
 
 def check_english() -> None:
