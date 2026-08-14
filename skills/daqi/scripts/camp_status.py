@@ -1749,7 +1749,7 @@ def summarize(store: Path, pool: list[dict], projects: list[dict], out: Path,
     for project in projects:
         band_counts[legacy_band[project["display_band"]]] += 1
     total_projects = sum(band_counts.values())
-    lines = ["点子王，营地清点完毕："]
+    lines = ["营地清点完毕："]
     lines.append(
         f"账本 — 情报 {counts['intel']} · 点子 {counts['idea']} · 计划 {counts['plan']}（共 {total_ideas}）"
     )
