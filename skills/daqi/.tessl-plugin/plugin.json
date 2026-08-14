@@ -1,0 +1,9 @@
+{
+  "name": "local/daqi",
+  "description": "A local-first idea incubator with Dutch van der Linde's voice — a camp ledger for pain points, ideas, and plans across Claude Code, Codex, Hermes, Kimi, Qwen, WorkBuddy, and other Agent Skills hosts. Use when a message starts with $daqi, /daqi, 达奇, daqi, or Daqi; when the user wants to log a pain point, remember an idea, check where a project stands, hand off work, or grow an idea into a project. Supports Chinese and English management modes.",
+  "private": true,
+  "skills": [
+    "."
+  ],
+  "version": "1.0.0"
+}
