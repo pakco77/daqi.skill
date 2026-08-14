@@ -166,16 +166,22 @@ def read_context(root: Path, max_bytes: int) -> list[dict]:
                 for p in sorted(sd.rglob("*.md"))[:3]:
                     add(p)
 
+    def safe_iter(d: Path) -> list[Path]:
+        try:
+            return sorted(d.iterdir())
+        except OSError:
+            return []
+
     for name in CONTEXT_GLOB:
         add(root / name)
-    level1 = [d for d in sorted(root.iterdir())
+    level1 = [d for d in safe_iter(root)
               if d.is_dir() and d.name not in skip and not d.name.startswith(".")]
     for d in level1:
         for name in CONTEXT_GLOB:
             add(d / name)
         scan_docs(d)
     for d in level1:
-        for g in sorted(d.iterdir()):
+        for g in safe_iter(d):
             if not g.is_dir() or g.name in skip or g.name.startswith("."):
                 continue
             for name in CONTEXT_GLOB:
@@ -324,6 +330,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     ap.add_argument("--commit", metavar="TOKEN", help="确认方案后提交（写 POOL/SHELF）")
     ap.add_argument("--proposals", metavar="FILE", help="跳过读取/提炼，直接采用给定候选 JSON（agent 大脑产物）")
     ap.add_argument("--previews-only", action="store_true", help="只打印所选工作区的上下文摘录（供 agent 大脑提炼），不写任何 store")
+    ap.add_argument("--max-bytes", type=int, default=DEEP_BYTES, help="previews-only 时每个工作区的字符预算")
     args = ap.parse_args(argv)
 
     store = Path(args.store)
@@ -379,7 +386,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     if args.previews_only:
         payload = []
         for cand in picked:
-            payload.append({"path": cand["path"], "files": read_context(Path(cand["path"]), DEEP_BYTES)})
+            payload.append({"path": cand["path"], "files": read_context(Path(cand["path"]), args.max_bytes)})
         print(json.dumps(payload, ensure_ascii=False, indent=2))
         return 0
 
