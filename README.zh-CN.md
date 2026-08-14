@@ -232,9 +232,11 @@ Daqi: wrap up
 Daqi: camp
 ```
 
-达奇清点账本和马厩——情报/点子/计划各多少、在跑/松了/歇马各多少，并把完整档案渲染成 `~/.daqi/camp.html`。全程只读：只解析 POOL 与 SHELF，绝不写入任何 store。
+达奇把营地渲染成一个桌面优先的单视窗：点击左侧「营地账本」查看情报/点子/计划，点击右侧「马厩」查看项目、最近 Agent 与「这票到哪了」，点击中央「火」查看 `SELF.md` 中你确认过的档案。账本不显示 Agent；Agent 只属于马厩。向下滚轮或按 `Esc` 会严格返回上一层，不会一次跳过两层。
 
-盘点页面遵循「灰阶点阵档案 Grayscale Dither Archive」风格：65% 米白 + 20% 浅灰 + 10% 纯黑 + 5% 点阵纹理；1px 实线边框、黑白反转交互、点阵填充状态；1-bit Floyd–Steinberg 抖动大图、4 级 Bayer 4×4 抖动缩略图；正文现代无衬线，数字/标签/时间用等宽字体；帧感离散动效。
+页面会按浏览器本地时区自动在 06:00–18:00 使用白天场景，其余时间使用夜景，也可以手动切换并在刷新后保留。场景采用「Mono Dither UI / 灰阶点阵档案」：夜景为 1-bit Floyd–Steinberg，日景为 4 级 Bayer 4×4；轻面板使用米白底、1px 边框、黑白反转与小块点阵选中态。火焰是独立的微黄离散动效，并尊重 `prefers-reduced-motion`。
+
+输出仍是一个离线、自包含的 `~/.daqi/camp.html`。生成器只读取 `POOL.md`、`SHELF.md`、可选的 `SELF.md`，以及 `SHELF.md` 中精确项目路径下的 `00_Context/NOW.md`；不会搜索相邻项目，不会修改任何输入。若 `--out` 与任一输入为同一路径、软链接或硬链接，生成会直接拒绝。
 
 ## 本地数据逻辑
 
@@ -296,7 +298,7 @@ daqi.skill/
 ├── skills/
 │   ├── daqi/                   # 营地账本、你的档案、马厩与生长机制
 │   │   ├── SKILL.md
-│   │   ├── assets/            # SELF / SHELF / POOL / NOW / HANDOFF 模板与图标
+│   │   ├── assets/            # 数据模板、图标与同构日夜灰阶点阵场景
 │   │   ├── references/        # 档案规则、hook、Agent 兼容契约
 │   │   └── scripts/           # 安装、Codex 连续性适配器与 SHELF 重建
 │   ├── context-fold/          # NOW.md 冷热分离

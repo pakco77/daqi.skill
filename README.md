@@ -232,9 +232,11 @@ Daqi: wrap up
 Daqi: camp / count / camp view
 ```
 
-Daqi counts the camp — intel/idea/plan each, riding/loose-rein/stabled each — and renders the full archive to `~/.daqi/camp.html`. Strictly read-only: it parses POOL and SHELF and never writes any store.
+Daqi renders the camp as one desktop-first viewport. Click the left **Camp ledger** for intel/idea/plan, the right **Stables** for projects, last Agent, and “where this job stands,” or the central **Fire** for the profile you explicitly confirmed in `SELF.md`. Agent attribution appears only in the Stables. Scrolling down or pressing `Esc` returns exactly one level at a time.
 
-The page follows the **Grayscale Dither Archive** style: 65% cream + 20% light gray + 10% black + 5% dither texture; 1px solid borders, black/white inversion hovers, checker-fill states; 1-bit Floyd–Steinberg hero and 4-level Bayer 4×4 thumbnails; modern sans for body, monospace for numbers/labels/timestamps; frame-like discrete motion.
+The page uses the browser's local timezone: 06:00–18:00 resolves to the day scene, otherwise the night scene. Day/night can also be selected manually and survives reloads. Its **Mono Dither UI / Grayscale Dither Archive** system pairs a 1-bit Floyd–Steinberg night scene with a four-level Bayer 4×4 day scene, compact cream paper panels, 1px borders, inverse hovers, small checker selection marks, and a separately rendered muted-yellow stepped flame that honors `prefers-reduced-motion`.
+
+The result remains one offline, self-contained `~/.daqi/camp.html`. The generator reads `POOL.md`, `SHELF.md`, optional `SELF.md`, and only the exact `00_Context/NOW.md` below each project path recorded in SHELF. It never searches sibling projects or modifies an input. Generation is rejected if `--out` aliases any input directly, through a symlink, or through a hardlink.
 
 ## Local data logic
 
@@ -296,7 +298,7 @@ daqi.skill/
 ├── skills/
 │   ├── daqi/                   # Camp ledger, profile, stables, growth mechanism
 │   │   ├── SKILL.md
-│   │   ├── assets/            # SELF / SHELF / POOL / NOW / HANDOFF templates + icon
+│   │   ├── assets/            # Data templates, icon, and paired day/night dither scenes
 │   │   ├── references/        # Profile, hook, and host contracts
 │   │   └── scripts/           # Install, Codex continuity adapter, and SHELF rebuild
 │   ├── context-fold/          # NOW.md hot-cold context
