@@ -255,7 +255,7 @@ def parse_self(text: str) -> dict:
         if line.startswith("## "):
             title = line[3:].strip().lower()
             section = "traits" if title.startswith(("你的档案", "your profile")) else (
-                "goals" if title in {"长期目标", "long-term goals"} else None
+                "goals" if title in {"长期目标", "long-term goals", "durable goals"} else None
             )
             continue
         if section == "traits" and line.startswith("-"):

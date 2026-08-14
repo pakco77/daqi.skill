@@ -48,6 +48,13 @@ SELF_TEMPLATE_ONLY = """## 你的档案（热区，均为可选）
 <只有用户希望跨项目持续携带时才写>
 """
 
+SELF_EN_DURABLE = """# SELF — Your profile
+
+## Durable goals
+
+- Grow ideas until people can use them
+"""
+
 NOW_ZH = """---
 daqi: 1
 ---
@@ -213,6 +220,9 @@ def check_profile_and_now_parsing() -> None:
     ]
     assert profile["goals"] == ["把点子养到能被真实使用"]
     assert camp_status.parse_self(SELF_TEMPLATE_ONLY) == {"traits": [], "goals": []}
+    assert camp_status.parse_self(SELF_EN_DURABLE)["goals"] == [
+        "Grow ideas until people can use them"
+    ]
 
     now = camp_status.parse_now(NOW_ZH)
     assert now["goal"] == "交付一个可运行营地。"
