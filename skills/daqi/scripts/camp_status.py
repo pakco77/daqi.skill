@@ -1,22 +1,9 @@
 #!/usr/bin/env python3
-"""Read-only camp view.
+"""Render the read-only, self-contained Mono Dither camp scene.
 
-Parse the camp stores (POOL.md ledger + SHELF.md stables) and render one
-self-contained HTML report in the "Grayscale Dither Archive / 灰阶点阵档案"
-style. The stores are opened read-only and never modified; the only write is
-the derived HTML artifact at --out (default <store>/camp.html).
-
-Style contract (Grayscale Dither Archive):
-  - 70% modern editorial design, 20% grayscale dither imagery, 10% terminal detail
-  - palette: bg #F2F2EE, secondary #E5E5E0, card #FAFAF7, text #111111,
-    secondary text #72726C, border #C9C9C2, black #050505, reverse #F5F5F2
-  - 1px solid borders, 0-2px radius, no soft shadows; hover = black/white invert;
-    selected = checker/dither fill; disabled = 35-45% gray
-  - modern sans for body/headings, monospace for numbers/labels/times/ids
-  - dither: 1-bit Floyd-Steinberg for the hero image, 4-level Bayer 4x4 for
-    thumbnails; visible pixel grain, no gradients, no soft blur
-  - motion is frame-like: discrete steps(), image develops from sparse dots
-  - no CRT scanlines, no glitch, no RGB split
+POOL, SHELF, optional SELF, and exact project NOW files are inputs. The only
+write is the derived HTML at --out (default <store>/camp.html), and output/input
+identity collisions are rejected before rendering.
 """
 
 from __future__ import annotations
@@ -40,12 +27,6 @@ STAGE_TOKENS = {
     "plan": "plan",
 }
 BANDS = [("riding", "在跑"), ("loose", "松了"), ("stabled", "歇马")]
-DISPLAY_BANDS = [
-    ("riding", "在跑"),
-    ("week", "7 天没动"),
-    ("month", "30 天没动"),
-    ("unknown", "时间未知"),
-]
 BAND_TOKENS = {
     "在跑": "riding",
     "松了": "loose",
@@ -608,7 +589,10 @@ SCENE_JS = r"""
     backButton.hidden = state.view === 'overview';
     panel.hidden = state.view === 'overview';
     camp.querySelectorAll('.camp-feature').forEach((button) => {
+      const available = state.view === 'overview';
       button.setAttribute('aria-expanded', String(button.dataset.view === state.view));
+      button.setAttribute('aria-hidden', String(!available));
+      button.tabIndex = available ? 0 : -1;
     });
     camp.querySelectorAll('[data-time-mode]').forEach((button) => {
       button.setAttribute('aria-pressed', String(button.dataset.timeMode === state.timeMode));
