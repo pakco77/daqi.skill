@@ -2,6 +2,7 @@
 
 import datetime
 import importlib.util
+import os
 import subprocess
 import sys
 import tempfile
@@ -181,6 +182,30 @@ def make_project(now_text: str | None) -> Path:
     return root
 
 
+def make_collision_store(self_text: str | None = SELF_PROFILE,
+                         now_text: str | None = NOW_ZH) -> tuple[Path, Path]:
+    project = make_project(now_text)
+    shelf = f"""# SHELF —— 马厩
+
+## 🟢 在跑
+
+| 项目 | 地址 | 最后活跃 | Agent |
+|---|---|---|---|
+| 营地 | {project} | 2026-08-14 | Codex |
+
+## 🟡 松了
+
+| 项目 | 地址 | 最后活跃 | Agent |
+|---|---|---|---|
+
+## 🔴 歇马
+
+| 项目 | 地址 | 最后活跃 | Agent |
+|---|---|---|---|
+"""
+    return make_store(POOL_ZH, shelf, self_text), project / "00_Context" / "NOW.md"
+
+
 def check_profile_and_now_parsing() -> None:
     profile = camp_status.parse_self(SELF_PROFILE)
     assert [item["label"] for item in profile["traits"]] == [
@@ -280,6 +305,54 @@ def check_main_data_assembly_and_readonly() -> None:
     assert (template_self / "SELF.md").read_bytes() == self_bytes
 
 
+def check_output_input_conflicts_are_rejected() -> None:
+    for reserved in ("POOL.md", "SHELF.md", "SELF.md", "NOW.md"):
+        store, now_path = make_collision_store()
+        out = now_path if reserved == "NOW.md" else store / reserved
+        inputs = [store / "POOL.md", store / "SHELF.md", store / "SELF.md", now_path]
+        before = {path: path.read_bytes() for path in inputs}
+        result = run("--store", str(store), "--out", str(out), check=False)
+        assert result.returncode == 2
+        assert "输出路径与只读输入冲突" in result.stderr
+        assert all(path.read_bytes() == data for path, data in before.items())
+
+    store, _ = make_collision_store(self_text=None)
+    missing_self = store / "SELF.md"
+    result = run("--store", str(store), "--out", str(missing_self), check=False)
+    assert result.returncode == 2
+    assert not missing_self.exists()
+
+    store, missing_now = make_collision_store(now_text=None)
+    result = run("--store", str(store), "--out", str(missing_now), check=False)
+    assert result.returncode == 2
+    assert not missing_now.exists()
+
+    store, _ = make_collision_store()
+    symlink_out = store / "pool-alias.html"
+    symlink_out.symlink_to(store / "POOL.md")
+    pool_bytes = (store / "POOL.md").read_bytes()
+    result = run("--store", str(store), "--out", str(symlink_out), check=False)
+    assert result.returncode == 2
+    assert symlink_out.is_symlink()
+    assert (store / "POOL.md").read_bytes() == pool_bytes
+
+    store, _ = make_collision_store()
+    hardlink_out = store / "shelf-alias.html"
+    os.link(store / "SHELF.md", hardlink_out)
+    shelf_bytes = (store / "SHELF.md").read_bytes()
+    result = run("--store", str(store), "--out", str(hardlink_out), check=False)
+    assert result.returncode == 2
+    assert (store / "SHELF.md").read_bytes() == shelf_bytes
+
+    store, now_path = make_collision_store()
+    inputs = [store / "POOL.md", store / "SHELF.md", store / "SELF.md", now_path]
+    before = {path: path.read_bytes() for path in inputs}
+    result = run("--store", str(store))
+    assert result.returncode == 0, result.stderr
+    assert (store / "camp.html").is_file()
+    assert all(path.read_bytes() == data for path, data in before.items())
+
+
 def check_counts_and_readonly() -> None:
     store = make_store(POOL_ZH, SHELF_ZH)
     out = store / "camp.html"
@@ -351,6 +424,7 @@ def main() -> None:
     check_activity_bands()
     check_project_enrichment_and_readonly()
     check_main_data_assembly_and_readonly()
+    check_output_input_conflicts_are_rejected()
     check_counts_and_readonly()
     check_empty()
     check_english()

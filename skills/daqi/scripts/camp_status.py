@@ -391,6 +391,19 @@ def enrich_projects(projects: list[dict], today: datetime.date) -> tuple[list[di
     return enriched, warnings
 
 
+def paths_share_identity(left: Path, right: Path) -> bool:
+    try:
+        if left.resolve(strict=False) == right.resolve(strict=False):
+            return True
+    except (OSError, RuntimeError):
+        if left.absolute() == right.absolute():
+            return True
+    try:
+        return left.samefile(right)
+    except OSError:
+        return False
+
+
 # ------------------------------------------------------------------ render
 
 
@@ -639,9 +652,21 @@ def main(argv: list[str] | None = None) -> int:
     gen_ts = datetime.datetime.now()
     pool, warn_pool = parse_pool(pool_path.read_text())
     bands, warn_shelf = parse_shelf(shelf_path.read_text())
+    flat_projects = flatten_projects(bands)
     self_path = store / "SELF.md"
+    readonly_inputs = [pool_path, shelf_path, self_path]
+    readonly_inputs.extend(
+        Path(project["path"]) / "00_Context" / "NOW.md"
+        for project in flat_projects
+        if project.get("path")
+    )
+    conflict = next((path for path in readonly_inputs if paths_share_identity(out, path)), None)
+    if conflict is not None:
+        print(f"输出路径与只读输入冲突：{out} -> {conflict}", file=sys.stderr)
+        return 2
+
     profile = parse_self(self_path.read_text()) if self_path.is_file() else {"traits": [], "goals": []}
-    projects, warn_now = enrich_projects(flatten_projects(bands), gen_ts.date())
+    projects, warn_now = enrich_projects(flat_projects, gen_ts.date())
     warnings = warn_pool + warn_shelf + warn_now
 
     html_text = render_html(store, pool, projects, profile, warnings, gen_ts)
