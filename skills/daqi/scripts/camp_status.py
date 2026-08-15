@@ -753,6 +753,13 @@ SCENE_CSS = r"""
   .camp-scan-steps { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-bottom: 10px; }
   .camp-scan-step { border: 2px solid var(--ui-border); background: var(--ui-bg); color: var(--ui-ink);
                     font-family: var(--camp-px-font); font-size: 11px; padding: 3px 8px; }
+  .camp-stage-btn { position: absolute; bottom: 6px; right: 6px; z-index: 2;
+                    border: 2px solid var(--ui-border); border-radius: 0;
+                    background: var(--ui-bg); color: var(--ui-ink);
+                    font-family: var(--camp-px-font); font-size: 10px;
+                    padding: 3px 8px; cursor: pointer; }
+  .camp-stage-btn:hover { border-color: var(--ui-ink); background: var(--ui-ink); color: var(--ui-bg); }
+  .camp-stage-btn:disabled { opacity: .5; cursor: default; }
   .camp-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
   .camp-tag {
     position: relative;
@@ -976,6 +983,17 @@ SCENE_JS = r"""
     panelBody.append(make('div', 'camp-notice', `有 ${payload.warnings.length} 条记录暂时无法读取`));
   }
 
+  function openConfirmModal(title, confirmLabel, run) {
+    const m = camp.querySelector('.camp-modal');
+    m.querySelector('.camp-modal-title').textContent = title;
+    m.hidden = false;
+    const close = () => { m.hidden = true; };
+    m.querySelector('[data-action="modal-cancel"]').onclick = () => close();
+    const confirm = m.querySelector('[data-action="modal-confirm"]');
+    confirm.textContent = confirmLabel;
+    confirm.onclick = () => { close(); run(); };
+    return close;
+  }
   const modal = camp.querySelector('.camp-modal');
   let closeDeleteModal = () => {};
   function openDeleteModal(label, run) {
@@ -989,6 +1007,19 @@ SCENE_JS = r"""
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && !modal.hidden) closeDeleteModal();
   });
+
+  function stageRow(file, line, stage, button) {
+    button.disabled = true;
+    button.classList.add('loading');
+    fetch('http://127.0.0.1:8799/stage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ file, line, stage })
+    }).then((r) => r.json()).then((d) => {
+      if (d && d.ok) { location.reload(); }
+      else { button.disabled = false; button.classList.remove('loading'); button.textContent = (d && d.error) || '没改成功'; }
+    }).catch(() => { button.disabled = false; button.classList.remove('loading'); button.textContent = '桥未启动'; });
+  }
 
   function deleteRow(file, line, button) {
     fetch('http://127.0.0.1:8799/delete', {
@@ -1032,7 +1063,12 @@ SCENE_JS = r"""
     });
     const items = payload.ledger.filter((item) => item.stage === state.ledgerTag);
     if (!items.length) {
-      addEmpty('这个阶段还没有条目');
+      const guide = state.ledgerTag === 'intel'
+        ? '还没有痛点。跟达奇说「我发现……」「老是……」，痛点自己会进来。'
+        : state.ledgerTag === 'idea'
+        ? '还没有点子。跟达奇说「我想做……」「我有个想法……」。'
+        : '还没有计划。点子有了证据，点卡片上的「→ 转成计划」就上来了。';
+      addEmpty(guide);
       return;
     }
     const list = make('div', 'camp-list');
@@ -1056,6 +1092,27 @@ SCENE_JS = r"""
         del.classList.add('off');
       }
       row.append(del);
+      const stageBtn = make('button', 'camp-stage-btn');
+      stageBtn.type = 'button';
+      if (item.stage === 'intel') {
+        stageBtn.textContent = '→ 转成点子';
+        stageBtn.addEventListener('click', () => openConfirmModal(
+          `把「${(item.text || '这条').slice(0, 16)}」转成点子？有了方向才算点子。`, '转成点子',
+          () => stageRow('POOL.md', item.raw, 'idea', stageBtn)));
+        row.append(stageBtn);
+      } else if (item.stage === 'idea') {
+        stageBtn.textContent = '→ 转成计划';
+        stageBtn.addEventListener('click', () => openConfirmModal(
+          `把「${(item.text || '这条').slice(0, 16)}」转成计划？要证据齐、交付物清楚才行。`, '转成计划',
+          () => stageRow('POOL.md', item.raw, 'plan', stageBtn)));
+        row.append(stageBtn);
+      } else if (item.stage === 'plan') {
+        stageBtn.textContent = '要立项了';
+        stageBtn.addEventListener('click', () => openConfirmModal(
+          '立项要定根目录和交付物，这一步得达奇当面办。对达奇说：立项 <项目名>。', '知道了',
+          () => {}));
+        row.append(stageBtn);
+      }
       list.append(row);
     });
     const pages = Math.ceil(items.length / PAGE_SIZE);
@@ -1529,7 +1586,7 @@ SCENE_JS = r"""
       button.setAttribute('aria-hidden', String(!available));
       button.tabIndex = available ? 0 : -1;
     });
-    if (!payload.scan) openView('scan');
+    openView('ledger');
   camp.querySelectorAll('[data-time-mode]').forEach((button) => {
       button.setAttribute('aria-pressed', String(button.dataset.timeMode === state.timeMode));
     });

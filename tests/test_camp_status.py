@@ -518,7 +518,7 @@ def check_empty() -> None:
     assert "痛点 0 · 点子 0 · 计划 0" in result.stdout
     assert "账本和马厩还是空的" in result.stdout
     html = (store / "camp.html").read_text()
-    assert "这个阶段还没有条目" in html
+    assert "还没有痛点" in html
     assert "这个时间段没有项目" in html
     assert "现在还认不出你" in html
 

@@ -11,6 +11,7 @@ import argparse
 import datetime
 import json
 import os
+import re
 import sys
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
@@ -74,6 +75,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         if self.path == "/scan-commit":
             self._scan_commit()
+            return
+        if self.path == "/stage":
+            self._stage()
             return
         if self.path != "/set-key":
             self._send(404, {"ok": False})
@@ -169,6 +173,37 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, {"ok": True, "proposals": len(proposals), "token": token})
         except Exception as error:
             self._send(500, {"ok": False, "error": str(error)})
+
+    def _stage(self) -> None:
+        """把账本里一条的阶段改成 idea/plan（主链流转）。"""
+        length = int(self.headers.get("Content-Length", 0))
+        try:
+            payload = json.loads(self.rfile.read(length) or b"{}")
+        except json.JSONDecodeError:
+            self._send(400, {"ok": False, "error": "bad json"})
+            return
+        file = str(payload.get("file", ""))
+        line = str(payload.get("line", ""))
+        stage = str(payload.get("stage", ""))
+        label = {"idea": "点子", "plan": "计划"}.get(stage, "")
+        if file != "POOL.md" or not line or not label:
+            self._send(400, {"ok": False, "error": "bad target"})
+            return
+        path = self.store / file
+        text = path.read_text()
+        if line not in text:
+            self._send(404, {"ok": False, "error": "line not found"})
+            return
+        new_line = re.sub(r"^(-\s*阶段[:：]\s*)(痛点|点子|计划)(?=[｜|])", rf"\g<1>{label}", line)
+        path.write_text(text.replace(line, new_line, 1))
+        try:
+            sys.path.insert(0, str(Path(__file__).resolve().parent))
+            from camp_status import build_page
+
+            (self.store / "camp.html").write_text(build_page(self.store))
+        except Exception as error:
+            print(f"warning: camp refresh failed: {error}", file=sys.stderr)
+        self._send(200, {"ok": True})
 
     def _scan_commit(self) -> None:
         length = int(self.headers.get("Content-Length", 0))
