@@ -109,7 +109,7 @@ def check_scan_pipeline() -> None:
     # 底部导航 + 四步路线图
     assert "camp-nav" in camp and "① 扫本地 Agent" in camp and "④ 提交到账本" in camp
     # 主链流转：痛点->点子->计划
-    assert "转成点子" in camp and "开始干" in camp
+    assert "挂到痛点" in camp and "开始干" in camp and "个点子正在攻它" in camp
     state = json.loads((store / ".scan-state.json").read_text())
     assert state["phase"] in ("scan", "select") and len(state["candidates"]) == 2
 

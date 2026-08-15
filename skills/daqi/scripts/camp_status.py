@@ -761,6 +761,8 @@ SCENE_CSS = r"""
                     padding: 3px 8px; cursor: pointer; }
   .camp-stage-btn:hover { border-color: var(--ui-ink); background: var(--ui-ink); color: var(--ui-bg); }
   .camp-stage-btn:disabled { opacity: .5; cursor: default; }
+  .camp-link-list { display: grid; gap: 6px; margin-bottom: 14px; max-height: 220px; overflow-y: auto; }
+  .camp-entry-line.has-now { color: var(--ui-ink); }
   .camp-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
   .camp-tag {
     position: relative;
@@ -1009,6 +1011,63 @@ SCENE_JS = r"""
     if (event.key === 'Escape' && !modal.hidden) closeDeleteModal();
   });
 
+  function openLinkModal(item, button) {
+    const pains = payload.ledger.filter((e) => e.stage === 'intel');
+    if (!pains.length) {
+      button.textContent = '还没有痛点';
+      setTimeout(() => { button.textContent = '挂到痛点'; }, 1400);
+      return;
+    }
+    const m = camp.querySelector('.camp-modal');
+    const box = m.querySelector('.camp-modal-box');
+    const title = m.querySelector('.camp-modal-title');
+    const list = make('div', 'camp-link-list');
+    pains.forEach((pain) => {
+      const opt = make('label', 'camp-scan-row');
+      const radio = document.createElement('input');
+      radio.type = 'radio';
+      radio.name = 'daqi-link-pain';
+      radio.value = pain.text;
+      opt.append(radio, make('div', 'camp-item-title', pain.text.slice(0, 24)));
+      list.append(opt);
+    });
+    const oldActions = m.querySelector('.camp-modal-actions');
+    oldActions.hidden = true;
+    title.textContent = `「${(item.text || '').slice(0, 16)}」在解决哪个痛点？`;
+    const actions = make('div', 'camp-modal-actions');
+    const ok = make('button', '', '挂上');
+    ok.type = 'button';
+    const cancel = make('button', '', '取消');
+    cancel.type = 'button';
+    const close = () => {
+      m.hidden = true;
+      oldActions.hidden = false;
+      actions.remove();
+      list.remove();
+    };
+    cancel.addEventListener('click', close);
+    ok.addEventListener('click', () => {
+      const picked = box.querySelector('input[name="daqi-link-pain"]:checked');
+      if (!picked) return;
+      close();
+      button.disabled = true;
+      button.classList.add('loading');
+      fetch('http://127.0.0.1:8799/link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ line: item.raw, pain: picked.value })
+      }).then((r) => r.json()).then((d) => {
+        if (d && d.ok) { location.reload(); }
+        else { button.disabled = false; button.classList.remove('loading'); button.textContent = (d && d.error) || '没挂上'; }
+      }).catch(() => { button.disabled = false; button.classList.remove('loading'); button.textContent = '桥未启动'; });
+    });
+    actions.append(cancel, ok);
+    box.append(list, actions);
+    m.hidden = false;
+    const escClose = (event) => { if (event.key === 'Escape' && !m.hidden) { close(); document.removeEventListener('keydown', escClose); } };
+    document.addEventListener('keydown', escClose);
+  }
+
   function stageRow(file, line, stage, button) {
     button.disabled = true;
     button.classList.add('loading');
@@ -1079,6 +1138,17 @@ SCENE_JS = r"""
       head.append(make('div', 'camp-item-title', item.text || '未命名条目'));
       head.append(make('div', 'camp-item-time camp-mono', item.last_seen || '时间未知'));
       row.append(head);
+      if (item.stage === 'intel') {
+        const linked = payload.ledger.filter((e) => e.stage === 'idea' && e.link && e.link.includes(item.text.slice(0, 12)));
+        if (linked.length) {
+          row.append(make('div', 'camp-entry-line has-now', `${linked.length} 个点子正在攻它：${linked.map((e) => e.text.slice(0, 14)).join('、')}`));
+        } else {
+          row.append(make('div', 'camp-entry-line', '还没有点子接它——说「我想做……」时提一嘴这个痛点，达奇会挂上。'));
+        }
+      }
+      if (item.stage === 'idea' && item.link && item.link !== '—') {
+        row.append(make('div', 'camp-entry-line has-now', `来自痛点：${item.link}`));
+      }
       const meta = [['为什么现在出现', item.why_now], ['证据', item.evidence], ['最小验证', item.probe]];
       meta.forEach(([label, value]) => {
         row.append(make('div', 'camp-entry-line', `${label}：${value && value !== '—' ? value : '—'}`));
@@ -1095,18 +1165,18 @@ SCENE_JS = r"""
       row.append(del);
       const stageBtn = make('button', 'camp-stage-btn');
       stageBtn.type = 'button';
-      if (item.stage === 'intel') {
-        stageBtn.textContent = '→ 转成点子';
-        stageBtn.addEventListener('click', () => openConfirmModal(
-          `把「${(item.text || '这条').slice(0, 16)}」转成点子？有了方向才算点子。`, '转成点子',
-          () => stageRow('POOL.md', item.raw, 'idea', stageBtn)));
+      if (item.stage === 'idea') {
+        stageBtn.textContent = '挂到痛点';
+        stageBtn.addEventListener('click', () => openLinkModal(item, stageBtn));
         row.append(stageBtn);
-      } else if (item.stage === 'idea') {
-        stageBtn.textContent = '开始干';
-        stageBtn.addEventListener('click', () => openConfirmModal(
+        const startBtn = make('button', 'camp-stage-btn', '开始干');
+        startBtn.type = 'button';
+        startBtn.style.right = 'auto';
+        startBtn.style.left = '6px';
+        startBtn.addEventListener('click', () => openConfirmModal(
           `「${(item.text || '这条').slice(0, 16)}」要开始干了？立项得定根目录和交付物，对达奇说：立项 <项目名>。`, '知道了',
           () => {}));
-        row.append(stageBtn);
+        row.append(startBtn);
       }
       list.append(row);
     });
@@ -1194,7 +1264,7 @@ SCENE_JS = r"""
       return;
     }
     panelTitle.textContent = '马厩';
-    panelSub.textContent = '正在被执行的点子，每匹带主线';
+    panelSub.textContent = '你的点子正在推进，这里汇报进程';
     if (payload.images && payload.images.morgan) {
       const riding = payload.projects.filter((item) => item.display_band === 'riding').length;
       const loose = payload.projects.filter((item) => item.display_band === 'week').length;
@@ -1827,14 +1897,21 @@ def parse_pool(text: str) -> tuple[list[dict], list[str]]:
         rest = m.group(2).strip()
         parts = [p.strip() for p in re.split(r"[｜|]", rest)]
         text_part = parts[0] if parts else ""
-        mids = parts[1:-1] if len(parts) > 2 else []
-        last_seen = parts[-1] if len(parts) > 1 else ""
+        if len(parts) >= 6:
+            link = parts[-2]
+            last_seen = parts[-1]
+            mids = parts[1:-2]
+        else:
+            link = ""
+            last_seen = parts[-1] if len(parts) > 1 else ""
+            mids = parts[1:-1] if len(parts) > 2 else []
         entries.append({
             "stage": stage,
             "text": text_part,
             "why_now": mids[0] if mids else "",
             "evidence": mids[1] if len(mids) > 1 else "",
             "probe": mids[2] if len(mids) > 2 else "",
+            "link": link,
             "last_seen": last_seen,
             "raw": line,
         })
@@ -2036,7 +2113,7 @@ def render_html(store: Path, pool: list[dict], projects: list[dict], profile: di
     <strong>火</strong><span>你是谁？</span>
   </button>
   <button type="button" class="camp-feature camp-feature-stable" data-view="stable" aria-expanded="false">
-    <strong>马厩</strong><span>正在被执行的点子</span>
+    <strong>马厩</strong><span>你的点子正在推进</span>
   </button>
 
   <nav class="camp-nav" aria-label="营地导航">

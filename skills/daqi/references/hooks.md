@@ -20,14 +20,15 @@ If the user states an observation or idea without invoking daqi — in any of th
 1. Read POOL and look for the same observation or intent, not merely the same wording.
 2. Check schema before interpreting stages. `schema_version: 3` uses `intel/idea`（痛点/点子）；旧 `plan` 行归并为 `idea`（被执行的点子去马厩）。No version, or `schema_version: 1` / `2` (the old mishu-era camp), means legacy: preview `seed → idea`, `signal → idea`, and `candidate → idea`; a legacy `signal` that is a raw observation with no direction maps to `intel`. Ask before rewriting the legacy POOL.
 3. Treat `我发现…` / `I noticed…` / `I found…` as a pain point or observation. If no intent matches, add one compact `intel`; never invent a solution direction. If an idea or plan matches, attach the evidence without regressing its stage.
-4. Treat `我想做…` / `I want to build…` as intent. If new, add one compact `idea`; if it supplies a direction for matching intel, merge them into that idea rather than duplicating them.
+4. Treat `我想做…` / `I want to build…` as intent. If new, add one compact `idea`; if it addresses an existing pain, record that pain's title in the 关联 field (第 6 段) — one pain can be attacked by several ideas, and the pain stays in the ledger even after an idea 立项s.
 5. There is no plan stage: when the boss wants to execute an idea, `立项` moves it into SHELF with a NOW main line.
 6. Record only:
    - stage;
    - one-line pain point or intent;
    - why it appeared now;
    - latest evidence or recurrence;
-   - smallest next probe.
+   - smallest next probe;
+   - 关联痛点 (idea rows only; pain title, may list several).
 7. Never create a project folder or SHELF row without explicit `立项 / promote` approval.
 
 ### Receipt

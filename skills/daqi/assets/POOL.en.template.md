@@ -12,4 +12,4 @@ schema_version: 3
 
 ## Entry format (one row per observation or intent)
 
-`- stage: intel/idea | one-line pain point or intent | why now | latest evidence | smallest probe | last_seen`
+`- stage: intel/idea | one-line pain point or intent | why now | latest evidence | smallest probe | linked pain (idea rows) | last_seen`

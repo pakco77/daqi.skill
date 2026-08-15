@@ -79,6 +79,9 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/stage":
             self._stage()
             return
+        if self.path == "/link":
+            self._link()
+            return
         if self.path != "/set-key":
             self._send(404, {"ok": False})
             return
@@ -173,6 +176,38 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, {"ok": True, "proposals": len(proposals), "token": token})
         except Exception as error:
             self._send(500, {"ok": False, "error": str(error)})
+
+    def _link(self) -> None:
+        """把点子行挂到一个痛点（第 6 段 = 关联痛点）。"""
+        length = int(self.headers.get("Content-Length", 0))
+        try:
+            payload = json.loads(self.rfile.read(length) or b"{}")
+        except json.JSONDecodeError:
+            self._send(400, {"ok": False, "error": "bad json"})
+            return
+        line = str(payload.get("line", ""))
+        pain = str(payload.get("pain", "")).strip()
+        path = self.store / "POOL.md"
+        text = path.read_text()
+        if not pain or line not in text:
+            self._send(404, {"ok": False, "error": "line not found"})
+            return
+        parts = re.split(r"[｜|]", line)
+        # 阶段：X 在第 0 段；重组成 6 段（text/why/evidence/probe/link/last_seen）
+        body = parts[1:] if len(parts) > 1 else []
+        while len(body) < 5:
+            body.append("—")
+        body[4] = pain
+        new_line = parts[0] + "｜" + "｜".join(body)
+        path.write_text(text.replace(line, new_line, 1))
+        try:
+            sys.path.insert(0, str(Path(__file__).resolve().parent))
+            from camp_status import build_page
+
+            (self.store / "camp.html").write_text(build_page(self.store))
+        except Exception as error:
+            print(f"warning: camp refresh failed: {error}", file=sys.stderr)
+        self._send(200, {"ok": True})
 
     def _stage(self) -> None:
         """把账本里一条的阶段改成 idea/plan（主链流转）。"""
