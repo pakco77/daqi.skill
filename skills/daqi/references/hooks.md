@@ -9,11 +9,11 @@ These are the portable behavioral hooks shared by every Agent Skills host. A nat
 Explicit daqi action at the start of the message:
 
 - `达奇，记下…` / `/daqi 记个点子…`
-- `达奇，我想做…` / `/daqi 我发现…`
+- `达奇，我想做…` / `达奇，我有个想法…` / `达奇，我想搞…` / `/daqi 我发现…`
 - `Daqi: remember…` / `/daqi idea…`
-- `Daqi: I want to build…` / `/daqi I noticed…`
+- `Daqi: I want to build…` / `Daqi: I have an idea…` / `/daqi I noticed…`
 
-If the user states an observation or idea without invoking daqi, offer once: “要记进营地账本吗？这是情报还是点子？” / “Log this in the camp ledger — intel or idea?” Do not write until confirmed.
+If the user states an observation or idea without invoking daqi — in any of the growth-hook phrasings (`我发现/我注意到/我有个想法/我想做/我想搞/我打算做`；`I noticed/I found/I have an idea/I want to build`) — offer once: “要记进营地账本吗？这是情报还是点子？” / “Log this in the camp ledger — intel or idea?” Do not write until confirmed.
 
 ### Write contract
 

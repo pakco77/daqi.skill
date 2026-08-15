@@ -19,6 +19,7 @@ import datetime
 import hashlib
 import json
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -129,6 +130,11 @@ def tool_camp(store: Path, _args: dict) -> str:
         return f"营地不完整：需要 {store / 'POOL.md'} 和 {store / 'SHELF.md'}"
     html = camp_status.build_page(store)
     (store / "camp.html").write_text(html)
+    if sys.platform == "darwin":
+        try:
+            subprocess.run(["open", str(store / "camp.html")], check=False)
+        except OSError:
+            pass
     pool, _ = camp_status.parse_pool((store / "POOL.md").read_text())
     bands, _ = camp_status.parse_shelf((store / "SHELF.md").read_text())
     counts = {key: 0 for key, _ in camp_status.STAGE_ORDER}

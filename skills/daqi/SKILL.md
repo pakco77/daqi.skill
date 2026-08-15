@@ -99,8 +99,8 @@ Route common suffixes as follows:
 |---|---|---|
 | `开工` | `start` | Report the most relevant current line and one suggestion |
 | `项目进度` / `我到哪了` / `状态` | `project progress` / `status` / `where am I` | Read SHELF; report one main line, at most one meaningful drift, and one suggestion |
-| `我想做…` / `记下…` / `有个点子…` | `I want to build…` / `remember…` / `idea…` | Add a new intent or solution hypothesis to POOL as an idea |
-| `我发现…` / `我注意到…` | `I noticed…` / `I found…` | Record a pain point or observation as intel; attach it to a matching idea or plan without regressing that item |
+| `我想做…` / `我有个想法…` / `我想搞…` / `记下…` / `有个点子…` | `I want to build…` / `I have an idea…` / `remember…` / `idea…` | Add a new intent or solution hypothesis to POOL as an idea |
+| `我发现…` / `我注意到…` / `我观察到…` / `有个痛点…` | `I noticed…` / `I found…` / `I observed…` | Record a pain point or observation as intel; attach it to a matching idea or plan without regressing that item |
 | `立项` / `出发` | `promote` / `ride out` | Only this boss-owned word turns a plan into a project: add one SHELF row and establish minimal context |
 | `盘点` / `营地` / `清点` | `camp` / `count` / `camp view` | Render the read-only camp view: run `scripts/camp_status.py`, print its summary, and give the HTML path |
 | `扫描` / `扫点子` | `scan` | Scan Agent history metadata (cwd+timestamps only, never transcripts), list candidates, read the selected workspaces, show proposals, and write POOL/SHELF only after token confirmation |
@@ -116,7 +116,7 @@ Route common suffixes as follows:
 
 Daqi has two cross-runtime behavioral hooks. They are explicit Skill actions, not claims about a host's native lifecycle API. Load [`references/hooks.md`](references/hooks.md) whenever either hook fires.
 
-- **Growth hook** — fires on `我想做`, `我发现`, `记下`, `记个点子`, `有个点子`, `I want to build`, `I noticed`, `I found`, `remember`, or `idea`. Deduplicate against POOL, record one compact intel, idea, or plan, and never create a project without approval.
+- **Growth hook** — fires on idea intent (`我想做…`, `我有个想法…`, `我想搞…`, `我打算做…`, `我要做一个…`, `咱们做一个…`, `帮我做个…`, `记下…`, `记个点子…`, `有个点子…`, `想到一个点子…`；`I want to build…`, `I have an idea…`, `I want to make…`, `let's build…`, `I'm thinking of building…`, `remember…`, `idea`) and on pain/observation (`我发现…`, `我注意到…`, `我发现一个问题…`, `我观察到…`, `有个痛点…`, `老是…`, `每次都…`；`I noticed…`, `I found…`, `I've noticed…`, `I observed…`, `keeps happening…`, `every time I…`). Deduplicate against POOL, record one compact intel, idea, or plan, and never create a project without approval.
 - **Wrap-up hook** — fires on `收工`, `交接`, `wrap up`, or `handoff`. Record what visibly moved, what remains open, one next step, and the landing condition; then update project continuity before replying.
 
 If an idea appears without an explicit daqi prefix, offer the growth hook once instead of writing silently. Do not infer a portable wrap-up from silence, thanks, tone, or an ordinary final response. In an enrolled Codex project, the injected contract and Stop adapter judge and checkpoint material state changes automatically; elsewhere, explicit commands remain the portable source of truth.
@@ -179,7 +179,7 @@ Use progressive commitment as the decision rule: pain points are cheap to captur
 
 ## Camp view (read-only)
 
-`营地` / `盘点` / `清点` (English: `camp` / `count` / `camp view`) renders the camp without writing anything. Load [`references/camp-view.md`](references/camp-view.md), run `scripts/camp_status.py --store $STORE_ROOT`, print its summary verbatim, and give the generated HTML path. The HTML is a derived artifact inside `$STORE_ROOT`; the script reads only POOL.md and SHELF.md and never modifies the stores. Address the user as 点子王 only when an idea moment happens — a new intel, idea, or plan being recorded. That address is the hook and the proof that daqi is present; ordinary status and views stay plain.
+`进营地` / `营地` / `盘点` / `清点` (English: `camp` / `count` / `camp view`) renders the camp without writing anything. Load [`references/camp-view.md`](references/camp-view.md), run `scripts/camp_status.py --store $STORE_ROOT`, print its summary verbatim, and give the generated HTML path. On macOS, also run `open <html path>` so the camp opens in the browser; elsewhere, just hand over the path. The HTML is a derived artifact inside `$STORE_ROOT`; the script reads only POOL.md and SHELF.md and never modifies the stores. Address the user as 点子王 only when an idea moment happens — a new intel, idea, or plan being recorded. That address is the hook and the proof that daqi is present; ordinary status and views stay plain.
 
 ## Scan (点子导入)
 
@@ -243,7 +243,7 @@ New idea, Chinese:
 
 Plan mature, Chinese:
 
-> 点子王，计划成型了：谁用、交出什么、怎么验，都清楚。出发，还是再养养？
+> 点子王，计划成型了：谁用、交出什么、怎么验，都清楚。开干吗，还是再养养？
 
 Project progress, Chinese:
 
