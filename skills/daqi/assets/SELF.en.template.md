@@ -4,29 +4,37 @@ folder_language: en
 default_projects_root:
 ---
 
-# SELF — Your profile
+# SELF — Your portrait
 
-> Keep only stable, non-sensitive facts that change how Agents should collaborate. Maximum 12 hot traits / roughly 800 tokens; never store privacy, secrets, or full transcripts.
+> What Daqi knows about you, ordered person-first, tech-second. Max 12 hot entries / ~800 tokens. Portrait dimensions come only from what you state; never infer, never store a birthday or private data.
 
-## Your profile (hot zone; every field is optional)
+## Your portrait (hot zone; every field is optional)
 
-- Industry: <only when explicitly provided and operationally useful>
-- Occupation: <only when explicitly provided and operationally useful>
-- Age band: <explicit age band only; never infer or store a birthday>
+### Who you are
+
+- Age: <only an explicitly stated age band; never infer or store a birthday>
+- Family: <only family facts you volunteer and that change collaboration rhythm>
+- Occupation: <only an explicit occupation that changes the working context>
+
+### How you live and speak
+
 - Life routines: <only stable routines that affect timing, interruptions, or cadence>
-- Decision style: <write when explicit; inference requires repetition>
+- Tone: <the tone you want Daqi to use with you>
+- Personality: <traits you explicitly stated; Daqi never diagnoses you>
+
+### Technical collaboration preferences
+
+- Tech taste: <interface style, toolchain, aesthetics>
 - Quality bar: <what counts as genuinely done>
-- Communication: <density, tone, and reporting shape>
 - Authorization boundaries: <actions that require approval>
 
 ## Durable goals
 
-<Only when the user wants this carried across projects; project goals belong in SHELF>
+<Only when you want this carried across projects; project goals live in the stables>
 
 ## Recording rules
 
-- Record explicit stable preferences immediately; inferred traits require two independent repetitions.
-- Industry, occupation, age band, and life routines must be explicitly provided; never infer them.
-- Write operational collaboration rules, not psychological diagnoses.
-- Replace corrected entries instead of preserving contradictions.
+- Portrait dimensions (age, family, occupation, personality) come only from explicit statements — never infer.
+- Tone and habits follow what you say; inferred traits need two repetitions.
+- Write collaboration rules, not psychological diagnoses; corrections replace old entries.
 - Never store passwords, API keys, tokens, cookies, identity numbers, contact details, exact addresses, financial, medical, family, third-party private information, or full transcripts.

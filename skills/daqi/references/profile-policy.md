@@ -1,6 +1,8 @@
-# SELF profile policy / 你的档案规则
+# SELF profile policy / 你的画像规则
 
-SELF is a compact working model of the user **as the boss of the camp**. Its purpose is to avoid repeatedly re-explaining stable operating preferences. It is not a biography, personality test, transcript archive, or secret store.
+SELF is a compact **portrait** of the user, ordered **person-first, tech-second**: age, family, occupation, life routines, tone, and personality lead; technical collaboration preferences (tech taste, quality bar, authorization boundaries) are one part of it, not the whole. Its purpose is to let Daqi know the person it serves — and to avoid repeatedly re-explaining stable operating preferences. It is not a biography, personality test, transcript archive, or secret store.
+
+Portrait dimensions (age, family, occupation, personality) are recorded **only from explicit statements** — never inferred, never guessed from writing, files, or behavior. Technical preferences may be explicit or observed-after-two-repetitions. If a portrait field is unknown, leave it as a placeholder and ask; do not fabricate a persona.
 
 Frontmatter fields such as `management_language`, `folder_language`, and the explicitly confirmed `default_projects_root` are operational configuration, not profile traits, and do not count toward the 12-trait hot-zone limit. The default root is for new projects and unassigned material only; existing project paths belong in SHELF and do not trigger relocation.
 

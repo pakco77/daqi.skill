@@ -131,7 +131,7 @@ Daqi accepts two project entry paths:
 
 The user owns three local stores under `$STORE_ROOT` (`~/.daqi` by default):
 
-- `SELF.md`: a compact **profile** — management language plus only the explicitly provided, operationally useful industry, occupation, age band, life routines, decision style, quality bar, communication preferences, authorization boundaries, recurring operating patterns, and definitions of done.
+- `SELF.md`: a compact **portrait** — person first, tech second: explicitly provided age band, family, occupation, life routines, tone, and personality lead; technical taste, quality bar, and authorization boundaries follow.
 - `SHELF.md`: derived project metadata index — project path, activity band, last active time, and Agent; it does not duplicate the project's action fields.
 - `POOL.md`: the camp ledger — intel, ideas, and plans that have not earned project status.
 
