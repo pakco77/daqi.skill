@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import shutil
 import json
 import os
 import re
@@ -696,6 +697,16 @@ SCENE_CSS = r"""
   .camp-del:hover { border-color: var(--ui-ink); }
   .camp-del.off { opacity: .42; cursor: default; }
   .camp-scan-pages { display: flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap; }
+  .camp-scan-actions { display: flex; gap: 6px; margin: 12px 0; flex-wrap: wrap; }
+  .camp-scan-actions button {
+    border: 3px solid var(--ui-ink); border-radius: 0;
+    background: var(--ui-bg); color: var(--ui-ink);
+    font-family: var(--camp-px-font); font-size: 11px;
+    padding: 6px 12px; cursor: pointer;
+    box-shadow: 3px 3px 0 0 var(--ui-shadow);
+  }
+  .camp-scan-actions button:hover { box-shadow: -3px -3px 0 0 var(--ui-shadow); transform: translate(1px, 1px); }
+  .camp-scan-actions button:disabled { opacity: .5; cursor: default; }
   .camp-scan-page {
     min-width: 30px; height: 26px;
     border: 3px solid var(--ui-border); border-radius: 0;
@@ -1229,6 +1240,42 @@ SCENE_JS = r"""
     try { return JSON.parse(localStorage.getItem('daqi.camp.scanSelection') || '[]'); } catch (_) { return []; }
   }
 
+  function bridgePost(path, body, button) {
+    button.disabled = true;
+    button.classList.add('loading');
+    fetch('http://127.0.0.1:8799' + path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    }).catch(() => {}).finally(() => {
+      setTimeout(() => location.reload(), 500);
+    });
+  }
+
+  function commitScan(token, button) {
+    button.disabled = true;
+    button.classList.add('loading');
+    button.textContent = '提交中…';
+    fetch('http://127.0.0.1:8799/scan-commit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token })
+    }).then((r) => r.json()).then((d) => {
+      if (d && d.ok) { location.reload(); }
+      else {
+        button.disabled = false;
+        button.classList.remove('loading');
+        button.textContent = (d && d.error) || '提交失败';
+        setTimeout(() => { button.textContent = '提交到账本 / 马厩'; }, 1600);
+      }
+    }).catch(() => {
+      button.disabled = false;
+      button.classList.remove('loading');
+      button.textContent = '桥未启动';
+      setTimeout(() => { button.textContent = '提交到账本 / 马厩'; }, 1600);
+    });
+  }
+
   function renderScan() {
     panelTitle.textContent = '扫描';
     panelSub.textContent = '找点子 · 找项目';
@@ -1256,7 +1303,7 @@ SCENE_JS = r"""
     panelBody.append(phaseRow);
 
     if (Array.isArray(scan.candidates) && scan.candidates.length) {
-      panelBody.append(make('div', 'camp-scan-head', `工作区候选 — 每页 ${SCAN_PAGE_SIZE} 条，勾选后点「提交」`));
+      panelBody.append(make('div', 'camp-scan-head', `工作区候选 — 每页 ${SCAN_PAGE_SIZE} 条：勾选 → 浅读/深读 → 提交到账本`));
       const list = make('div', 'camp-list');
       const saved = scanSelection();
       let commandInput = null;
@@ -1315,19 +1362,28 @@ SCENE_JS = r"""
         panelBody.append(pager);
       }
       panelBody.append(list);
-      const cmdRow = make('div', 'camp-scan-cmd');
-      commandInput = document.createElement('input');
-      commandInput.className = 'camp-mono';
-      commandInput.readOnly = true;
-      commandInput.placeholder = '勾选后点「提交」';
-      const submitBtn = make('button', '', '提交');
-      submitBtn.type = 'button';
-      submitBtn.addEventListener('click', () => {
-        if (!commandInput.value) return;
-        copyText(commandInput.value, submitBtn);
+      const actions = make('div', 'camp-scan-actions');
+      const rescanBtn = make('button', '', '扫本地 Agent');
+      rescanBtn.type = 'button';
+      rescanBtn.addEventListener('click', () => bridgePost('/scan', {}, rescanBtn));
+      actions.append(rescanBtn);
+      const shallowBtn = make('button', '', '浅读所选');
+      shallowBtn.type = 'button';
+      shallowBtn.addEventListener('click', () => {
+        const sel = scanSelection();
+        if (!sel.length) { shallowBtn.textContent = '先勾选'; setTimeout(() => { shallowBtn.textContent = '浅读所选'; }, 1200); return; }
+        bridgePost('/scan', { select: sel.join(','), depth: 'shallow' }, shallowBtn);
       });
-      cmdRow.append(commandInput, submitBtn);
-      panelBody.append(cmdRow);
+      actions.append(shallowBtn);
+      const deepBtn = make('button', '', '深读所选');
+      deepBtn.type = 'button';
+      deepBtn.addEventListener('click', () => {
+        const sel = scanSelection();
+        if (!sel.length) { deepBtn.textContent = '先勾选'; setTimeout(() => { deepBtn.textContent = '深读所选'; }, 1200); return; }
+        bridgePost('/scan', { select: sel.join(','), depth: 'deep' }, deepBtn);
+      });
+      actions.append(deepBtn);
+      panelBody.append(actions);
       refreshCommand();
     }
 
@@ -1342,16 +1398,16 @@ SCENE_JS = r"""
       });
       panelBody.append(list);
       if (scan.token) {
-        const sel = scanSelection();
         const tokRow = make('div', 'camp-scan-cmd');
-        const tokInput = document.createElement('input');
-        tokInput.className = 'camp-mono';
-        tokInput.readOnly = true;
-        tokInput.value = `camp_scan.py --select ${sel.join(',')} --commit ${scan.token}`;
+        const brain = payload.settings && payload.settings.brain;
+        const hint = brain === 'deepseek' ? '大脑：DeepSeek'
+          : brain === 'shallow' ? '大脑：启发式（无 key、无本机 Agent）'
+          : `大脑：本机 Agent（${String(brain).replace('agent:', '')}）`;
+        tokRow.append(make('span', 'camp-item-time camp-mono', hint));
         const tokBtn = make('button', '', '提交到账本 / 马厩');
         tokBtn.type = 'button';
-        tokBtn.addEventListener('click', () => copyText(tokInput.value, tokBtn));
-        tokRow.append(tokInput, tokBtn);
+        tokBtn.addEventListener('click', () => commitScan(scan.token, tokBtn));
+        tokRow.append(tokBtn);
         panelBody.append(tokRow);
       }
     }
@@ -1780,6 +1836,11 @@ def render_html(store: Path, pool: list[dict], projects: list[dict], profile: di
             settings["model"] = str(llm.get("model", settings["model"]))
             settings["base_url"] = str(llm.get("base_url", settings["base_url"]))
             settings["has_key"] = bool(str(llm.get("api_key", "")).strip())
+            if settings["has_key"]:
+                settings["brain"] = "deepseek"
+            else:
+                local_agent = shutil.which("codex") or shutil.which("claude")
+                settings["brain"] = ("agent:" + local_agent) if local_agent else "shallow"
         except (OSError, json.JSONDecodeError):
             pass
     ledger_daqi = asset_data_uri("daqi-ledger.png")

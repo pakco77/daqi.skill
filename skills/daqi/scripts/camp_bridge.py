@@ -8,6 +8,7 @@ key 只落本地文件（0600），永不进入聊天或任何网络请求。营
 from __future__ import annotations
 
 import argparse
+import datetime
 import json
 import os
 import sys
@@ -38,18 +39,41 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
 
+    def _ping(self) -> None:
+            cfg = {}
+            try:
+                sys.path.insert(0, str(Path(__file__).resolve().parent))
+                from camp_scan import agent_command, load_config
+
+                cfg = load_config(self.store)
+                agent = agent_command() or str((cfg.get("agent") or {}).get("command", ""))
+            except Exception:
+                agent = ""
+            has_key = bool(str((cfg.get("llm") or {}).get("api_key", "")).strip())
+            self._send(200, {"ok": True, "store": str(self.store),
+                             "brain": "deepseek" if has_key else ("agent:" + agent if agent else "shallow")})
+
     def do_GET(self) -> None:
         if self.path == "/ping":
-            self._send(200, {"ok": True, "store": str(self.store)})
-        else:
-            self._send(404, {"ok": False})
+            self._ping()
+            return
+        self._send(404, {"ok": False})
 
     def do_POST(self) -> None:
+        if self.path == "/ping":
+            self._ping()
+            return
         if self.path == "/delete":
             self._delete()
             return
         if self.path == "/deep-dive":
             self._deep_dive()
+            return
+        if self.path == "/scan":
+            self._scan()
+            return
+        if self.path == "/scan-commit":
+            self._scan_commit()
             return
         if self.path != "/set-key":
             self._send(404, {"ok": False})
@@ -113,6 +137,57 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as error:  # delete succeeded; page refresh is best-effort
             print(f"warning: camp refresh failed: {error}", file=sys.stderr)
         self._send(200, {"ok": True})
+
+    def _scan(self) -> None:
+        """Drive the scan pipeline server-side: candidates, or read+distill on select."""
+        length = int(self.headers.get("Content-Length", 0))
+        try:
+            payload = json.loads(self.rfile.read(length) or b"{}")
+        except json.JSONDecodeError:
+            self._send(400, {"ok": False, "error": "bad json"})
+            return
+        try:
+            sys.path.insert(0, str(Path(__file__).resolve().parent))
+            import camp_scan
+
+            select = str(payload.get("select", "")).strip()
+            depth = str(payload.get("depth", "shallow"))
+            if depth not in ("shallow", "deep"):
+                depth = "shallow"
+            if not select:
+                camp_scan.render_camp_page(self.store)
+                candidates = camp_scan.scan_metadata(self.store)
+                camp_scan.write_state(self.store, {
+                    "phase": "select", "percent": 30,
+                    "started": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
+                    "items": [], "candidates": candidates,
+                })
+                camp_scan.render_camp_page(self.store)
+                self._send(200, {"ok": True, "candidates": len(candidates)})
+                return
+            proposals, token = camp_scan.scan_flow(self.store, select, depth)
+            self._send(200, {"ok": True, "proposals": len(proposals), "token": token})
+        except Exception as error:
+            self._send(500, {"ok": False, "error": str(error)})
+
+    def _scan_commit(self) -> None:
+        length = int(self.headers.get("Content-Length", 0))
+        try:
+            payload = json.loads(self.rfile.read(length) or b"{}")
+        except json.JSONDecodeError:
+            self._send(400, {"ok": False, "error": "bad json"})
+            return
+        try:
+            sys.path.insert(0, str(Path(__file__).resolve().parent))
+            import camp_scan
+
+            wrote, shelf_added = camp_scan.commit_scan(self.store, str(payload.get("token", "")))
+            if wrote < 0:
+                self._send(409, {"ok": False, "error": "token 不匹配"})
+                return
+            self._send(200, {"ok": True, "pool_entries": wrote, "shelf_added": shelf_added})
+        except Exception as error:
+            self._send(500, {"ok": False, "error": str(error)})
 
     def _deep_dive(self) -> None:
         """Read one project's context deeper and distill findings; display only."""

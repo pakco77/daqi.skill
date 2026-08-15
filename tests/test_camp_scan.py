@@ -103,6 +103,9 @@ def check_scan_pipeline() -> None:
     assert "深挖" in camp and "深挖中" in camp and "camp-loading-shift" in camp
     # 账本里的达奇形象 + 马厩里的摩根
     assert "camp-ledger-daqi" in camp and "camp-morgan" in camp and "摩根" in camp
+    # 营地可请求复写：扫本地 Agent / 浅读所选 / 深读所选 / 提交到账本
+    assert "扫本地 Agent" in camp and "浅读所选" in camp and "深读所选" in camp
+    assert "提交到账本 / 马厩" in camp and "camp-scan-actions" in camp
     state = json.loads((store / ".scan-state.json").read_text())
     assert state["phase"] in ("scan", "select") and len(state["candidates"]) == 2
 

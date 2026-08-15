@@ -21,6 +21,8 @@ import hashlib
 import json
 import os
 import re
+import shutil
+import subprocess
 import sys
 import time
 import datetime
@@ -253,6 +255,48 @@ def call_brain(cfg: dict, previews: list[dict]) -> list[dict]:
         return []
 
 
+def agent_command() -> str | None:
+    return next((c for c in ("codex", "claude") if shutil.which(c)), None)
+
+
+def call_agent_brain(cfg: dict, previews: list[dict]) -> list[dict]:
+    """No API key? Use the installed local agent as the brain."""
+    agent = cfg.get("agent", {}) if isinstance(cfg, dict) else {}
+    command = str(agent.get("command", "") or agent_command() or "")
+    if not command:
+        return []
+    prompt = (
+        "你是达奇的大脑，负责从项目工作区的上下文文件里提炼点子。"
+        "只输出一个 JSON 数组（不要多余文字）："
+        '[{"type":"intel|idea|project","title":"…","line":"一句话","why_now":"…",'
+        '"evidence":"…","probe":"最小验证"}]。'
+        "intel=痛点或观察；idea=意图或方案假设；project=已成型的项目（有根目录与可见交付物）。"
+        "不发明；没有就输出 []。\n\n工作区文件摘录：\n"
+        + "\n\n".join(f"--- {p['file']} ---\n{p['text']}" for p in previews)
+    )
+    if command.endswith("codex"):
+        full = [command, "exec", "--skip-git-repo-check", prompt]
+    elif command.endswith("claude"):
+        full = [command, "-p", prompt]
+    else:
+        full = [command] + list(agent.get("args", [])) + [prompt]
+    try:
+        result = subprocess.run(full, capture_output=True, text=True, timeout=600, cwd=str(Path.home()))
+    except (OSError, subprocess.TimeoutExpired) as error:
+        print(f"warning: agent brain failed ({error})", file=sys.stderr)
+        return []
+    text = result.stdout.strip()
+    start = text.find("[")
+    end = text.rfind("]")
+    if start == -1 or end <= start:
+        return []
+    try:
+        parsed = json.loads(text[start:end + 1])
+        return parsed if isinstance(parsed, list) else []
+    except json.JSONDecodeError:
+        return []
+
+
 def heuristic(root: Path, previews: list[dict]) -> list[dict]:
     name = root.name
     first = previews[0] if previews else None
@@ -301,6 +345,116 @@ def tick(store: Path, state: dict, **fields: object) -> None:
 
 
 # -------------------------------------------------------------------- main
+
+
+def resolve_selection(candidates: list[dict], select: str) -> list[dict]:
+    picked = []
+    for token in [t.strip() for t in select.split(",") if t.strip()]:
+        if token.isdigit() and 1 <= int(token) <= len(candidates):
+            picked.append(candidates[int(token) - 1])
+        else:
+            picked.extend(c for c in candidates if token in c["path"])
+    seen: set[str] = set()
+    return [c for c in picked if not (c["path"] in seen or seen.add(c["path"]))]
+
+
+def scan_flow(store: Path, select: str, depth: str = "shallow") -> tuple[list[dict], str]:
+    """Run the scan pipeline with live state/camp-page ticks; returns (proposals, token)."""
+    started = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+    candidates = scan_metadata(store)
+    picked = resolve_selection(candidates, select)
+    items = [{"path": c["path"], "status": "pending", "percent": 0} for c in picked]
+    state = {"phase": "read", "percent": 30, "started": started,
+             "items": items, "candidates": candidates}
+    write_state(store, state)
+    render_camp_page(store)
+    cfg = load_config(store)
+    proposals: list[dict] = []
+    total = max(len(picked), 1)
+    read_bytes = DEEP_BYTES if depth == "deep" else SHALLOW_BYTES
+    for index, cand in enumerate(picked):
+        items[index]["status"] = "reading"
+        items[index]["percent"] = 8
+        state["percent"] = 30 + int(45 * index / total)
+        write_state(store, state)
+        render_camp_page(store)
+        previews = read_context(Path(cand["path"]), read_bytes)
+        findings: list[dict] = []
+        if depth == "deep":
+            items[index]["percent"] = 55
+            state["percent"] = 30 + int(45 * (index + 0.5) / total)
+            write_state(store, state)
+            render_camp_page(store)
+            if cfg["llm"].get("api_key"):
+                findings = call_brain(cfg, previews)
+            else:
+                findings = call_agent_brain(cfg, previews)
+        if not findings:
+            findings = heuristic(Path(cand["path"]), previews)
+        for f in findings:
+            if f.get("type") not in ("intel", "idea", "project"):
+                f["type"] = "idea"
+            f.setdefault("title", Path(cand["path"]).name)
+            f.setdefault("line", "")
+            f.setdefault("why_now", "")
+            f.setdefault("evidence", "")
+            f.setdefault("probe", "")
+            f["source"] = cand["path"]
+        proposals.extend(findings)
+        items[index]["status"] = "done"
+        items[index]["percent"] = 100
+        state["percent"] = 30 + int(45 * (index + 1) / total)
+        write_state(store, state)
+        render_camp_page(store)
+    proposals = dedupe_against_stores(store, proposals)
+    token = hashlib.sha256(json.dumps(proposals, ensure_ascii=False, sort_keys=True).encode()).hexdigest()[:16]
+    state.update({"phase": "commit", "percent": 80, "proposals": proposals, "token": token})
+    write_state(store, state)
+    render_camp_page(store)
+    return proposals, token
+
+
+def commit_scan(store: Path, token: str) -> tuple[int, int]:
+    """Write the state-held proposals into POOL/SHELF after token check."""
+    state_path = store / STATE_NAME
+    if not state_path.is_file():
+        return -1, -1
+    try:
+        state = json.loads(state_path.read_text())
+    except json.JSONDecodeError:
+        return -1, -1
+    if state.get("token") != token:
+        return -1, -1
+    proposals = state.get("proposals", [])
+    pool_lines = []
+    shelf_added = 0
+    now = datetime.date.today().isoformat()
+    for p in proposals:
+        if p.get("type") == "project":
+            shelf = (store / "SHELF.md").read_text()
+            if p.get("source") and f"| {p.get('source')} " not in shelf:
+                shelf = shelf.replace("|---|---|---|---|\n", f"|---|---|---|---|\n| {p.get('title')} | {p.get('source')} | {now} | scan |\n", 1)
+                (store / "SHELF.md").write_text(shelf)
+                shelf_added += 1
+        else:
+            stage = "情报" if p.get("type") == "intel" else "点子"
+            pool_lines.append(
+                f"- 阶段：{stage}｜{p.get('title')}｜{p.get('why_now') or '扫描发现'}｜"
+                f"{p.get('evidence') or '—'}｜{p.get('probe') or '—'}｜{now}"
+            )
+    if pool_lines:
+        pool = (store / "POOL.md").read_text()
+        if "<空>" in pool:
+            pool = pool.replace("<空>", "\n".join(pool_lines), 1)
+        else:
+            pool = pool.rstrip("\n") + "\n" + "\n".join(pool_lines) + "\n"
+        (store / "POOL.md").write_text(pool)
+    state["applied"] = now
+    state["phase"] = "commit"
+    state["percent"] = 100
+    write_state(store, state)
+    render_camp_page(store)
+    return len(pool_lines), shelf_added
 
 
 def dedupe_against_stores(store: Path, proposals: list[dict]) -> list[dict]:
