@@ -739,6 +739,20 @@ SCENE_CSS = r"""
                                padding: 6px 12px; cursor: pointer; box-shadow: 2px 2px 0 0 var(--ui-shadow); }
   .camp-modal-actions button:hover { box-shadow: -2px -2px 0 0 var(--ui-shadow); transform: translate(1px, 1px); }
   .camp-modal-actions .camp-modal-confirm { background: var(--ui-ink); color: var(--ui-bg); }
+  .camp-nav { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 20;
+              display: flex; gap: 6px; }
+  .camp-nav button {
+    border: 3px solid var(--ui-ink); border-radius: 0;
+    background: var(--ui-bg); color: var(--ui-ink);
+    font-family: var(--camp-px-font); font-size: 12px;
+    padding: 7px 14px; cursor: pointer;
+    box-shadow: 3px 3px 0 0 var(--ui-shadow);
+  }
+  .camp-nav button:hover { box-shadow: -3px -3px 0 0 var(--ui-shadow); transform: translate(1px, 1px); }
+  .camp-nav button.on { background: var(--ui-ink); color: var(--ui-bg); }
+  .camp-scan-steps { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-bottom: 10px; }
+  .camp-scan-step { border: 2px solid var(--ui-border); background: var(--ui-bg); color: var(--ui-ink);
+                    font-family: var(--camp-px-font); font-size: 11px; padding: 3px 8px; }
   .camp-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
   .camp-tag {
     position: relative;
@@ -1303,6 +1317,12 @@ SCENE_JS = r"""
     const scan = payload.scan;
     if (!scan) {
       const wrap = make('div', 'camp-scan-empty');
+      wrap.append(make('div', 'camp-scan-head', '四步，找回你的点子：'));
+      const steps = make('div', 'camp-scan-steps');
+      ['① 扫本地 Agent', '② 勾工作区', '③ 深挖', '④ 提交到账本'].forEach((t) => {
+        steps.append(make('span', 'camp-scan-step', t));
+      });
+      wrap.append(steps);
       wrap.append(make('div', 'camp-scan-head', '营地第一条命脉：先把你的点子找回来。'));
       const actions = make('div', 'camp-scan-actions');
       const btn = make('button', '', '扫本地 Agent');
@@ -1397,7 +1417,7 @@ SCENE_JS = r"""
       rescanBtn.type = 'button';
       rescanBtn.addEventListener('click', () => bridgePost('/scan', {}, rescanBtn));
       actions.append(rescanBtn);
-      const shallowBtn = make('button', '', '浅读所选');
+      const shallowBtn = make('button', '', '快扫所选（免费）');
       shallowBtn.type = 'button';
       shallowBtn.addEventListener('click', () => {
         const sel = scanSelection();
@@ -1405,7 +1425,7 @@ SCENE_JS = r"""
         bridgePost('/scan', { select: sel.join(','), depth: 'shallow' }, shallowBtn);
       });
       actions.append(shallowBtn);
-      const deepBtn = make('button', '', '深读所选');
+      const deepBtn = make('button', '', '深挖所选（走大脑）');
       deepBtn.type = 'button';
       deepBtn.addEventListener('click', () => {
         const sel = scanSelection();
@@ -1496,6 +1516,9 @@ SCENE_JS = r"""
 
   function renderState() {
     camp.dataset.view = state.view;
+    camp.querySelectorAll('.camp-nav [data-nav]').forEach((button) => {
+      button.classList.toggle('on', button.dataset.nav === state.view);
+    });
     camp.dataset.time = resolvedTime();
     backButton.hidden = state.view === 'overview';
     panelBack.hidden = state.view === 'overview';
@@ -1540,6 +1563,9 @@ SCENE_JS = r"""
 
   camp.querySelectorAll('.camp-feature').forEach((button) => {
     button.addEventListener('click', () => openView(button.dataset.view));
+  });
+  camp.querySelectorAll('.camp-nav [data-nav]').forEach((button) => {
+    button.addEventListener('click', () => openView(button.dataset.nav));
   });
   backButton.addEventListener('click', goBackOneLevel);
   panelBack.addEventListener('click', goBackOneLevel);
@@ -1961,6 +1987,12 @@ def render_html(store: Path, pool: list[dict], projects: list[dict], profile: di
     <strong>马厩</strong><span>在跑的项目</span>
   </button>
 
+  <nav class="camp-nav" aria-label="营地导航">
+    <button type="button" data-nav="ledger">账本</button>
+    <button type="button" data-nav="scan">扫描</button>
+    <button type="button" data-nav="stable">马厩</button>
+    <button type="button" data-nav="self">观火观己</button>
+  </nav>
   <button type="button" class="camp-back" data-action="back" hidden>返回上一层 ↓</button>
   <section class="camp-panel" tabindex="-1" aria-labelledby="camp-panel-title" hidden>
     <header class="camp-panel-head">
