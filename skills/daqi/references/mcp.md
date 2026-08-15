@@ -27,17 +27,21 @@ python3 <skill-dir>/scripts/daqi_mcp.py --store ~/.daqi
   ```yaml
   [
     {
-      name: mcp-client,
-      config: {
-        transport: stdio,
-        serverName: daqi,
-        command: python3,
-        args: [
-          /Users/pakco/.agents/skills/daqi/scripts/daqi_mcp.py,
-          --store,
-          /Users/pakco/.daqi,
-        ],
-      },
+      insert: [
+        {
+          name: mcp-client,
+          config: {
+            transport: stdio,
+            serverName: daqi,
+            command: python3,
+            args: [
+              /Users/pakco/.agents/skills/daqi/scripts/daqi_mcp.py,
+              --store,
+              /Users/pakco/.daqi,
+            ],
+          },
+        },
+      ],
     },
   ]
   ```
