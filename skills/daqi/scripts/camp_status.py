@@ -1651,8 +1651,7 @@ SCENE_JS = r"""
       button.setAttribute('aria-hidden', String(!available));
       button.tabIndex = available ? 0 : -1;
     });
-    openView('ledger');
-  camp.querySelectorAll('[data-time-mode]').forEach((button) => {
+    camp.querySelectorAll('[data-time-mode]').forEach((button) => {
       button.setAttribute('aria-pressed', String(button.dataset.timeMode === state.timeMode));
     });
     if (state.view !== 'overview') renderPanel();
