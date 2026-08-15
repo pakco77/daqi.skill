@@ -680,9 +680,9 @@ SCENE_CSS = r"""
   .camp-panel { width: clamp(520px, 46vw, 660px); }
   .camp-entry { position: relative; display: block; padding: 12px 46px 12px 14px; min-height: 64px; }
   .camp-project { position: relative; min-height: 64px; }
-  .camp-entry-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
-  .camp-entry-line { margin-top: 5px; color: var(--ui-soft); font-size: 11px; line-height: 1.5;
-                     overflow-wrap: anywhere; }
+  .camp-entry-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-right: 30px; }
+  .camp-entry-line { margin-top: 6px; color: var(--ui-soft); font-size: 11px; line-height: 1.6;
+                     overflow-wrap: break-word; }
   .camp-entry-line::before { content: "▸ "; color: var(--ui-border); }
   .camp-item-progress { margin-top: 4px; color: var(--ui-soft); font-size: 10px;
                         overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 420px; }
@@ -989,7 +989,7 @@ SCENE_JS = r"""
 
   function renderLedger() {
     panelTitle.textContent = '营地账本';
-    panelSub.textContent = '痛点发现＝痛点 · 点子＝想法 · 计划＝待拍板';
+    panelSub.textContent = '痛点 · 点子 · 计划';
     if (payload.images && payload.images.ledger_daqi) {
       const daqiRow = make('div', 'camp-ledger-daqi');
       const daqiImg = document.createElement('img');
@@ -1007,7 +1007,7 @@ SCENE_JS = r"""
     scanBtn.style.marginBottom = '12px';
     scanBtn.addEventListener('click', () => openView('scan'));
     panelBody.append(scanBtn);
-    const labels = {intel: '痛点发现', idea: '点子', plan: '计划'};
+    const labels = {intel: '痛点', idea: '点子', plan: '计划'};
     const tags = Object.entries(labels).map(([key, label]) => ({
       key, label, count: payload.ledger.filter((item) => item.stage === key).length
     }));
@@ -1952,7 +1952,7 @@ def render_html(store: Path, pool: list[dict], projects: list[dict], profile: di
   </header>
 
   <button type="button" class="camp-feature camp-feature-ledger" data-view="ledger" aria-expanded="false">
-    <strong>营地账本</strong><span>痛点发现 · 点子 · 计划</span>
+    <strong>营地账本</strong><span>痛点 · 点子 · 计划</span>
   </button>
   <button type="button" class="camp-feature camp-feature-self" data-view="self" aria-expanded="false">
     <strong>火</strong><span>你是谁？</span>
@@ -2006,7 +2006,7 @@ def summarize(store: Path, pool: list[dict], projects: list[dict], out: Path,
     total_projects = sum(band_counts.values())
     lines = ["营地清点完毕："]
     lines.append(
-        f"账本里 痛点发现 {counts['intel']} · 点子 {counts['idea']} · 计划 {counts['plan']}（共 {total_ideas}）"
+        f"账本里 痛点 {counts['intel']} · 点子 {counts['idea']} · 计划 {counts['plan']}（共 {total_ideas}）"
     )
     lines.append(
         f"马厩 在跑 {band_counts['riding']} · 松了 {band_counts['loose']} · 歇马 {band_counts['stabled']}（共 {total_projects}）"
