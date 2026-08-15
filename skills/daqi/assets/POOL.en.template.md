@@ -4,12 +4,12 @@ schema_version: 3
 
 # POOL — Camp ledger
 
-> Writing it down is not riding out. “I noticed” creates intel; “I want to build” creates an idea; evidence turns an idea into a plan; only the boss's go sends it to SHELF.
+> Writing it down is not doing it. "I noticed" -> intel; "I want to build" -> idea; doing it -> the stables.
 
-## Current intel, ideas, and plans
+## Current intel and ideas
 
 <empty>
 
 ## Entry format (one row per observation or intent)
 
-`- stage: intel/idea/plan | one-line pain point or intent | why now | latest evidence | smallest probe | last_seen`
+`- stage: intel/idea | one-line pain point or intent | why now | latest evidence | smallest probe | last_seen`

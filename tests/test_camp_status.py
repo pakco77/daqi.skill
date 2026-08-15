@@ -446,14 +446,14 @@ def check_counts_and_readonly() -> None:
     result = run("--store", str(store), "--out", str(out))
     assert result.returncode == 0, result.stderr
     assert "营地清点完毕" in result.stdout
-    assert "痛点 2 · 点子 1 · 计划 1" in result.stdout
+    assert "痛点 2 · 点子 2（共 4）" in result.stdout
     assert "在跑 1 · 松了 0 · 歇马 1" in result.stdout
     assert "只读" in result.stdout
 
     html = out.read_text()
     assert "营地账本" in html
-    assert "痛点 · 点子 · 计划" in html
-    assert "马厩" in html and "在跑的项目" in html
+    assert "痛点 · 点子" in html
+    assert "马厩" in html and "正在被执行的点子" in html
     assert ">火<" in html and "你是谁？" in html
     assert "7 天没动" in html and "30 天没动" in html
     assert "观火观己" in html
@@ -515,7 +515,7 @@ def check_empty() -> None:
     store = make_store(pool_empty, SHELF_ZH_EMPTY)
     result = run("--store", str(store))
     assert result.returncode == 0, result.stderr
-    assert "痛点 0 · 点子 0 · 计划 0" in result.stdout
+    assert "痛点 0 · 点子 0（共 0）" in result.stdout
     assert "账本和马厩还是空的" in result.stdout
     html = (store / "camp.html").read_text()
     assert "还没有痛点" in html
@@ -527,7 +527,7 @@ def check_english() -> None:
     store = make_store(POOL_EN, SHELF_EN)
     result = run("--store", str(store))
     assert result.returncode == 0, result.stderr
-    assert "痛点 1 · 点子 1 · 计划 1" in result.stdout
+    assert "痛点 1 · 点子 2（共 3）" in result.stdout
     assert "在跑 1 · 松了 0 · 歇马 1" in result.stdout
 
 

@@ -185,7 +185,7 @@ class Handler(BaseHTTPRequestHandler):
         file = str(payload.get("file", ""))
         line = str(payload.get("line", ""))
         stage = str(payload.get("stage", ""))
-        label = {"idea": "点子", "plan": "计划"}.get(stage, "")
+        label = {"idea": "点子"}.get(stage, "")
         if file != "POOL.md" or not line or not label:
             self._send(400, {"ok": False, "error": "bad target"})
             return
@@ -194,7 +194,7 @@ class Handler(BaseHTTPRequestHandler):
         if line not in text:
             self._send(404, {"ok": False, "error": "line not found"})
             return
-        new_line = re.sub(r"^(-\s*阶段[:：]\s*)(痛点|点子|计划)(?=[｜|])", rf"\g<1>{label}", line)
+        new_line = re.sub(r"^(-\s*阶段[:：]\s*)(痛点|点子)(?=[｜|])", rf"\g<1>{label}", line)
         path.write_text(text.replace(line, new_line, 1))
         try:
             sys.path.insert(0, str(Path(__file__).resolve().parent))

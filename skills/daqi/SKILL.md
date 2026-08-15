@@ -101,7 +101,7 @@ Route common suffixes as follows:
 | `项目进度` / `我到哪了` / `状态` | `project progress` / `status` / `where am I` | Read SHELF; report one main line, at most one meaningful drift, and one suggestion |
 | `我想做…` / `我有个想法…` / `我想搞…` / `记下…` / `有个点子…` | `I want to build…` / `I have an idea…` / `remember…` / `idea…` | Add a new intent or solution hypothesis to POOL as an idea |
 | `我发现…` / `我注意到…` / `我观察到…` / `有个痛点…` | `I noticed…` / `I found…` / `I observed…` | Record a pain point or observation as intel; attach it to a matching idea or plan without regressing that item |
-| `立项` / `出发` | `promote` / `ride out` | Only this boss-owned word turns a plan into a project: add one SHELF row and establish minimal context |
+| `立项` / `出发` | `promote` / `ride out` | Only this boss-owned word moves an idea into the stables: add one SHELF row and establish minimal context |
 | `盘点` / `营地` / `清点` | `camp` / `count` / `camp view` | Render the read-only camp view: run `scripts/camp_status.py`, print its summary, and give the HTML path |
 | `扫描` / `扫点子` | `scan` | Scan Agent history metadata (cwd+timestamps only, never transcripts), list candidates, read the selected workspaces, show proposals, and write POOL/SHELF only after token confirmation |
 | `补主线` | `fill now` | For stables missing NOW: list them, print context previews for the agent brain, mint a token on the distilled four-field candidates, and write `00_Context/NOW.md` only after token confirmation; existing NOW files are never overwritten |
@@ -128,7 +128,7 @@ If an idea appears without an explicit daqi prefix, offer the growth hook once i
 
 Daqi accepts two project entry paths:
 
-- **Grow from zero** — a pain point enters POOL as intel or an intent enters as an idea. A clear direction turns intel into an idea; evidence plus a clear user, deliverable, and next test turns an idea into a plan. Only the boss's explicit `出发` establishes a project in SHELF.
+- **Grow from zero** — a pain point enters POOL as 痛点 (intel) or an intent enters as 点子 (idea). A clear direction turns intel into an idea; the moment an idea is being executed, the boss's explicit `立项` moves it into SHELF (马厩) with a NOW main line. There is no intermediate plan stage — 马厩 is where ideas get done.
 - **Organize what already exists** — the user points to an exact existing root; Daqi inventories it read-only, identifies the current deliverable and next step, proposes a SHELF entry, then uses `project-fold` only if files need a confirmed reorganization. Do not force an existing project through POOL or relocate it under `default_projects_root`.
 
 ### 1. Your profile across Agents
@@ -152,23 +152,22 @@ Use local session metadata to recover **where work happened**, not the transcrip
 - Feedback: describe what moved and what is still unclosed. Do not praise activity that did not move the project toward a visible result.
 - Runtime honesty: exact-root Codex automatic continuity has a separately tested SessionStart/UserPromptSubmit/Stop adapter and still requires project-hook review in the real Codex UI. Claude Code remains partial; Hermes, Kimi, Qwen, WorkBuddy, and other hosts use explicit `$daqi` / `/daqi` hooks unless their own native adapter is separately tested.
 
-### 3. Camp-ledger growth: intel → idea → plan → ride
+### 3. Camp-ledger growth: 痛点 → 点子 → 马厩
 
 Classify growth without forcing immediate project creation. `出发 / promote` is a boss-owned transition, not a stored stage:
 
 | Stage | Meaning | Action |
 |---|---|---|
-| `intel / 情报` | A pain point, observation, recurrence, or opportunity without a committed direction; usually `我发现…` / `I noticed…` | Put it in POOL; do not invent an intent |
+| `intel / 痛点` | A pain point, observation, recurrence, or opportunity without a committed direction; usually `我发现…` / `I noticed…` | Put it in POOL; do not invent an intent |
 | `idea / 点子` | An intended direction or solution hypothesis; usually `我想做…` / `I want to build…`, or a direction formed from intel | Put or update it in POOL |
-| `plan / 计划` | Evidence exists and the intended user, visible deliverable, and next test are clear | Ask whether the boss wants to ride out |
-| `project / 出发` | The boss explicitly approves `出发 / promote` | Add it to SHELF and establish context/files |
+| `project / 马厩` | The boss explicitly approves `立项 / promote` — the idea is being executed | Add it to SHELF and establish context/files |
 
-The public model is: `我发现 → 情报 ┐ / 我想做 → 点子 ┘ → 点子 → 计划 --帮主点头出发--> 项目`. An idea may start directly without preceding intel. Existing projects bypass this growth path and use read-only intake.
+The public model is: `我发现 → 痛点 ┐ / 我想做 → 点子 ┘ → 点子 --帮主点头立项--> 马厩（正在被执行的点子）`. An idea may start directly without preceding intel. Existing projects bypass this growth path and use read-only intake.
 
 POOL schema compatibility:
 
-- New POOL files use `schema_version: 3` and write only `intel`, `idea`, or `plan`.
-- A POOL without `schema_version`, or with `schema_version: 1` / `2` (the old mishu-era camp), is legacy: old `seed` maps to `idea`; old `signal` and old `candidate` map to `plan` because both already meant recurrence/evidence or promotion readiness. A legacy `signal` that is a raw observation with no direction maps to `intel`.
+- New POOL files use `schema_version: 3` and write only `intel` (痛点) or `idea` (点子). The old `plan` stage is retired: 马厩 is where ideas get executed, so legacy `plan` rows map to `idea`.
+- A POOL without `schema_version`, or with `schema_version: 1` / `2` (the old mishu-era camp), is legacy: old `seed` maps to `idea`; old `signal` and old `candidate` map to `idea` (promotion readiness lives in the stables now). A legacy `signal` that is a raw observation with no direction maps to `intel`.
 - Before rewriting a legacy POOL, show a compact migration preview and ask for confirmation. Never reinterpret a legacy `signal` as a new raw observation.
 
 When a plan becomes a project:

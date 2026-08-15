@@ -283,7 +283,6 @@ def check_skill_contracts() -> None:
         "收工",
         "情报",
         "点子",
-        "计划",
         "营地",
         "盘点",
         "立项",
@@ -358,7 +357,7 @@ def check_skill_contracts() -> None:
         assert root_contract in project_roots
     hooks = (DAQI / "references" / "hooks.md").read_text()
     assert "Growth hook" in hooks and "Wrap-up hook" in hooks
-    for stage_contract in ("intel/idea/plan", "signal → plan", "candidate → plan"):
+    for stage_contract in ("intel/idea", "signal → idea", "candidate → idea"):
         assert stage_contract in hooks
     assert hooks.index("NOW.md") < hooks.index("matching SHELF row")
     automatic = (DAQI / "references" / "automatic-continuity.md").read_text()
@@ -377,7 +376,7 @@ def check_skill_contracts() -> None:
     for language in ("zh", "en"):
         pool = (DAQI / "assets" / f"POOL.{language}.template.md").read_text()
         assert "schema_version: 3" in pool
-        assert "intel/idea/plan" in pool or "情报/点子/计划" in pool
+        assert "intel/idea" in pool or "痛点/点子" in pool
     for language in ("zh", "en"):
         handoff = DAQI / "assets" / f"HANDOFF.{language}.template.md"
         assert handoff.exists() and "Landing condition" in handoff.read_text().replace("落地条件", "Landing condition")
@@ -396,11 +395,11 @@ def check_skill_contracts() -> None:
     zh_readme = (ROOT / "README.zh-CN.md").read_text()
     assert "Grow from zero" in readme and "Existing project intake" in readme
     assert "default_projects_root" in readme
-    assert "Intel, ideas, plans" in readme and "Boss says ride out" in readme
+    assert "intel (pain) → idea" in readme and "Boss says ride out" in readme
     assert "No need to remember start or wrap up" in readme
     assert "Codex `/hooks`" in readme
     assert "从零生长" in zh_readme and "已有项目接入" in zh_readme
-    assert "情报、点子、计划" in zh_readme and "帮主点头出发" in zh_readme
+    assert "痛点 → 点子" in zh_readme and "帮主点头立项" in zh_readme
     assert "不用记开工或收工" in zh_readme
     assert "Codex `/hooks`" in zh_readme
     assert readme.count("```mermaid") == 2 and zh_readme.count("```mermaid") == 2

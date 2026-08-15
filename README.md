@@ -46,8 +46,8 @@ Every pain point you mention and every idea you toss out goes into the camp ledg
 
 ## Core features
 
-- **Camp ledger `POOL.md`** — the demand pool: intel (pain) → idea (intent) → plan (evidence gathered) → your go.
-- **Stables `SHELF.md`** — riding / loose rein / stabled project index; each row deletable (double confirm).
+- **Camp ledger `POOL.md`** — the demand pool: intel (pain) → idea (intent); doing it moves it to the stables. No redundant in-between stage.
+- **Stables `SHELF.md`** — the ideas being executed: riding / loose rein / stabled; each row deletable (double confirm).
 - **Where this job stands `NOW.md`** — the single hot state per project: goal, verified now, next, done when.
 - **Your profile `SELF.md`** — only stable preferences that change collaboration, max 12 entries.
 - **Camp page `~/.daqi/camp.html`** — an offline, self-contained single page in Grayscale Dither Archive style with day/night themes; grain fire, breathing horse, wind over the ground; scrollable panels, × delete, page-switching scan tabs. Only the fire has color.
@@ -103,13 +103,8 @@ mindmap
             Idea
       I want to build…
         Idea
-      Idea gains evidence
-        Plan
-          User is clear
-          Deliverable is clear
-          Next test is clear
       Boss says ride out
-        Project
+        Stables
     Existing project intake
       Exact root supplied
         No substitute search
@@ -124,7 +119,7 @@ mindmap
         Plan before moves
     Shared stores
       Camp ledger POOL
-        Intel, ideas, plans
+        Intel, ideas
       Stables SHELF
         Approved and existing projects
       Where this job stands NOW

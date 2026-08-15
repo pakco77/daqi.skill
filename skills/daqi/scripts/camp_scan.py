@@ -403,6 +403,8 @@ def scan_flow(store: Path, select: str, depth: str = "shallow") -> tuple[list[di
         for f in findings:
             if f.get("type") not in ("intel", "idea", "project"):
                 f["type"] = "idea"
+            if f.get("type") == "plan":
+                f["type"] = "idea"
             f.setdefault("title", Path(cand["path"]).name)
             f.setdefault("line", "")
             f.setdefault("why_now", "")
@@ -446,7 +448,7 @@ def commit_scan(store: Path, token: str) -> tuple[int, int]:
                 (store / "SHELF.md").write_text(shelf)
                 shelf_added += 1
         else:
-            stage = "情报" if p.get("type") == "intel" else "点子"
+            stage = "痛点" if p.get("type") == "intel" else "点子"
             pool_lines.append(
                 f"- 阶段：{stage}｜{p.get('title')}｜{p.get('why_now') or '扫描发现'}｜"
                 f"{p.get('evidence') or '—'}｜{p.get('probe') or '—'}｜{now}"
@@ -580,6 +582,8 @@ def main(argv: Optional[list[str]] = None) -> int:
                 continue
             if f.get("type") not in ("intel", "idea", "project"):
                 f["type"] = "idea"
+            if f.get("type") == "plan":
+                f["type"] = "idea"
             f.setdefault("title", "")
             f.setdefault("line", "")
             f.setdefault("why_now", "")
@@ -607,6 +611,8 @@ def main(argv: Optional[list[str]] = None) -> int:
                 findings = heuristic(Path(cand["path"]), previews)
             for f in findings:
                 if f.get("type") not in ("intel", "idea", "project"):
+                    f["type"] = "idea"
+                if f.get("type") == "plan":
                     f["type"] = "idea"
                 f.setdefault("title", Path(cand["path"]).name)
                 f.setdefault("line", "")
@@ -655,7 +661,7 @@ def main(argv: Optional[list[str]] = None) -> int:
                     shelf = shelf.replace("|---|---|---|---|\n", f"|---|---|---|---|\n{row}\n", 1)
                     (store / "SHELF.md").write_text(shelf)
                 else:
-                    stage = "情报" if p["type"] == "intel" else "点子"
+                    stage = "痛点" if p["type"] == "intel" else "点子"
                     pool_lines.append(
                         f"- 阶段：{stage}｜{p['title']}｜{p['why_now'] or '扫描发现'}｜"
                         f"{p['evidence'] or '—'}｜{p['probe'] or '—'}｜{now}"

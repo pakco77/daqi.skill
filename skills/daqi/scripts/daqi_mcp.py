@@ -110,7 +110,7 @@ def tool_record(store: Path, args: dict) -> str:
     entries, _ = camp_status.parse_pool(pool_path.read_text())
     if any(e["text"][:40] == text[:40] for e in entries):
         return f"账本里已经有这条了（{text[:40]}…），不重复记。"
-    label = "情报" if stage == "intel" else "点子"
+    label = "痛点" if stage == "intel" else "点子"
     line = (
         f"- 阶段：{label}｜{text}｜{args.get('why_now') or '—'}｜"
         f"{args.get('evidence') or '—'}｜{args.get('probe') or '—'}｜"
@@ -142,7 +142,7 @@ def tool_camp(store: Path, _args: dict) -> str:
         counts[e["stage"]] += 1
     band_counts = {key: len(bands[key]) for key, _ in camp_status.BANDS}
     return (
-        f"营地清点完毕：账本 情报 {counts['intel']} · 点子 {counts['idea']} · 计划 {counts['plan']}（共 {sum(counts.values())}）；"
+        f"营地清点完毕：账本里 痛点 {counts['intel']} · 点子 {counts['idea']}（共 {sum(counts.values())}）；"
         f"马厩 在跑 {band_counts['riding']} · 松了 {band_counts['loose']} · 歇马 {band_counts['stabled']}（共 {sum(band_counts.values())}）。"
         f"档案：{store / 'camp.html'}"
     )

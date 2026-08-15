@@ -18,14 +18,15 @@ import sys
 import datetime
 from pathlib import Path
 
-STAGE_ORDER = [("intel", "情报"), ("idea", "点子"), ("plan", "计划")]
+STAGE_ORDER = [("intel", "痛点"), ("idea", "点子")]
 STAGE_TOKENS = {
     "情报": "intel",
+    "痛点": "intel",
     "点子": "idea",
-    "计划": "plan",
+    "计划": "idea",  # 老格式：计划归并为点子（马厩才代表「被执行」）
     "intel": "intel",
     "idea": "idea",
-    "plan": "plan",
+    "plan": "idea",
 }
 BANDS = [("riding", "在跑"), ("loose", "松了"), ("stabled", "歇马")]
 BAND_TOKENS = {
@@ -1034,7 +1035,7 @@ SCENE_JS = r"""
 
   function renderLedger() {
     panelTitle.textContent = '营地账本';
-    panelSub.textContent = '痛点 · 点子 · 计划';
+    panelSub.textContent = '痛点 · 点子（要执行的，去马厩）';
     if (payload.images && payload.images.ledger_daqi) {
       const daqiRow = make('div', 'camp-ledger-daqi');
       const daqiImg = document.createElement('img');
@@ -1052,7 +1053,7 @@ SCENE_JS = r"""
     scanBtn.style.marginBottom = '12px';
     scanBtn.addEventListener('click', () => openView('scan'));
     panelBody.append(scanBtn);
-    const labels = {intel: '痛点', idea: '点子', plan: '计划'};
+    const labels = {intel: '痛点', idea: '点子'};
     const tags = Object.entries(labels).map(([key, label]) => ({
       key, label, count: payload.ledger.filter((item) => item.stage === key).length
     }));
@@ -1067,7 +1068,7 @@ SCENE_JS = r"""
         ? '还没有痛点。跟达奇说「我发现……」「老是……」，痛点自己会进来。'
         : state.ledgerTag === 'idea'
         ? '还没有点子。跟达奇说「我想做……」「我有个想法……」。'
-        : '还没有计划。点子有了证据，点卡片上的「→ 转成计划」就上来了。';
+        : '还没有点子。跟达奇说「我想做……」「我有个想法……」。';
       addEmpty(guide);
       return;
     }
@@ -1101,15 +1102,9 @@ SCENE_JS = r"""
           () => stageRow('POOL.md', item.raw, 'idea', stageBtn)));
         row.append(stageBtn);
       } else if (item.stage === 'idea') {
-        stageBtn.textContent = '→ 转成计划';
+        stageBtn.textContent = '开始干';
         stageBtn.addEventListener('click', () => openConfirmModal(
-          `把「${(item.text || '这条').slice(0, 16)}」转成计划？要证据齐、交付物清楚才行。`, '转成计划',
-          () => stageRow('POOL.md', item.raw, 'plan', stageBtn)));
-        row.append(stageBtn);
-      } else if (item.stage === 'plan') {
-        stageBtn.textContent = '要立项了';
-        stageBtn.addEventListener('click', () => openConfirmModal(
-          '立项要定根目录和交付物，这一步得达奇当面办。对达奇说：立项 <项目名>。', '知道了',
+          `「${(item.text || '这条').slice(0, 16)}」要开始干了？立项得定根目录和交付物，对达奇说：立项 <项目名>。`, '知道了',
           () => {}));
         row.append(stageBtn);
       }
@@ -1199,7 +1194,7 @@ SCENE_JS = r"""
       return;
     }
     panelTitle.textContent = '马厩';
-    panelSub.textContent = '在跑的项目，每匹带主线';
+    panelSub.textContent = '正在被执行的点子，每匹带主线';
     if (payload.images && payload.images.morgan) {
       const riding = payload.projects.filter((item) => item.display_band === 'riding').length;
       const loose = payload.projects.filter((item) => item.display_band === 'week').length;
@@ -2035,13 +2030,13 @@ def render_html(store: Path, pool: list[dict], projects: list[dict], profile: di
   </header>
 
   <button type="button" class="camp-feature camp-feature-ledger" data-view="ledger" aria-expanded="false">
-    <strong>营地账本</strong><span>痛点 · 点子 · 计划</span>
+    <strong>营地账本</strong><span>痛点 · 点子</span>
   </button>
   <button type="button" class="camp-feature camp-feature-self" data-view="self" aria-expanded="false">
     <strong>火</strong><span>你是谁？</span>
   </button>
   <button type="button" class="camp-feature camp-feature-stable" data-view="stable" aria-expanded="false">
-    <strong>马厩</strong><span>在跑的项目</span>
+    <strong>马厩</strong><span>正在被执行的点子</span>
   </button>
 
   <nav class="camp-nav" aria-label="营地导航">
@@ -2095,7 +2090,7 @@ def summarize(store: Path, pool: list[dict], projects: list[dict], out: Path,
     total_projects = sum(band_counts.values())
     lines = ["营地清点完毕："]
     lines.append(
-        f"账本里 痛点 {counts['intel']} · 点子 {counts['idea']} · 计划 {counts['plan']}（共 {total_ideas}）"
+        f"账本里 痛点 {counts['intel']} · 点子 {counts['idea']}（共 {total_ideas}）"
     )
     lines.append(
         f"马厩 在跑 {band_counts['riding']} · 松了 {band_counts['loose']} · 歇马 {band_counts['stabled']}（共 {total_projects}）"
