@@ -579,6 +579,7 @@ demo 已完成。
 
 def main() -> None:
 
+    check_custom_header_aliases()
     check_profile_and_now_parsing()
     check_activity_bands()
     check_project_enrichment_and_readonly()
