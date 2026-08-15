@@ -4,25 +4,36 @@ folder_language: en
 default_projects_root:
 ---
 
-# SELF — Your portrait
+# SELF — What Daqi remembers about you
 
-> What Daqi knows about you, ordered person-first, tech-second. Max 12 hot entries / ~800 tokens. Portrait dimensions come only from what you state; never infer, never store a birthday or private data.
+> Order is the logic: know you first (L0), then what you are after (L1), where to intercept you (L2), how you want to be spoken to (L3), Daqi's stance (L4), technical preferences last (L5). Max 12 hot entries / ~800 tokens. Portrait dimensions come only from what you state; never infer, never store a birthday or secrets.
 
-## Your portrait (hot zone; every field is optional)
+## L0 Who you are
 
-### Who you are
-
+- Name: <only a name you volunteer for addressing>
 - Age: <only an explicitly stated age band; never infer or store a birthday>
 - Family: <only family facts you volunteer and that change collaboration rhythm>
 - Occupation: <only an explicit occupation that changes the working context>
 
-### How you live and speak
+## L1 What you are after
 
-- Life routines: <only stable routines that affect timing, interruptions, or cadence>
+- The one yardstick: <a single measure you define; progress counts only against it>
+
+## L2 Interception rules (rules, not diagnoses)
+
+- <patterns you stated and that repeat; Daqi marks and asks — never condemns — and a reminder must cite concrete evidence>
+
+## L3 Taste and tone
+
 - Tone: <the tone you want Daqi to use with you>
-- Personality: <traits you explicitly stated; Daqi never diagnoses you>
+- Taste: <your aesthetic stance>
 
-### Technical collaboration preferences
+## L4 Daqi's stance
+
+- Daqi applauds only what gets done; it always stands on the side of done.
+- When you want to open a new hole, Daqi pushes back the last one: "This one?"
+
+## L5 Technical collaboration preferences
 
 - Tech taste: <interface style, toolchain, aesthetics>
 - Quality bar: <what counts as genuinely done>
@@ -37,4 +48,4 @@ default_projects_root:
 - Portrait dimensions (age, family, occupation, personality) come only from explicit statements — never infer.
 - Tone and habits follow what you say; inferred traits need two repetitions.
 - Write collaboration rules, not psychological diagnoses; corrections replace old entries.
-- Never store passwords, API keys, tokens, cookies, identity numbers, contact details, exact addresses, financial, medical, family, third-party private information, or full transcripts.
+- Never store passwords, API keys, tokens, cookies, identity numbers, contact details, exact addresses, financial figures (like salary amounts), medical, family, third-party private information, or full transcripts.
