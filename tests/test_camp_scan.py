@@ -83,7 +83,7 @@ def check_scan_pipeline() -> None:
     camp = (store / "camp.html").read_text()
     # 扫描入口在账本内（JS 动态按钮），不在场景上
     assert "扫描 · 找点子 / 找项目" in camp and "camp-scan-open" in camp
-    assert "工作区候选" in camp
+    assert "勾几个工作区，剩下的交给达奇。" in camp
     # 颗粒火焰：CSS 燃烧动画 + 降级开关
     assert ".camp-fire-grain" in camp and "camp-grain-shift" in camp
     assert ".camp-sparks" in camp and "camp-spark-rise" in camp

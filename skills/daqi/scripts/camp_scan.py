@@ -459,6 +459,8 @@ def commit_scan(store: Path, token: str) -> tuple[int, int]:
             pool = pool.rstrip("\n") + "\n" + "\n".join(pool_lines) + "\n"
         (store / "POOL.md").write_text(pool)
     state["applied"] = now
+    state["applied_pool"] = len(pool_lines)
+    state["applied_shelf"] = shelf_added
     state["phase"] = "commit"
     state["percent"] = 100
     write_state(store, state)
@@ -623,7 +625,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     state["proposals"] = proposals
     token = hashlib.sha256(json.dumps(proposals, ensure_ascii=False, sort_keys=True).encode()).hexdigest()[:16]
     state["token"] = token
-    tick(store, state, percent=80, log=f"提炼完成：{len(proposals)} 条候选（已去重）")
+    tick(store, state, percent=80, log=f"这波扫完，挖到 {len(proposals)} 条新的（去重过了）")
 
     print()
     print("候选方案（确认后 --commit 才会写入账本/马厩）：")

@@ -707,6 +707,8 @@ SCENE_CSS = r"""
   }
   .camp-scan-actions button:hover { box-shadow: -3px -3px 0 0 var(--ui-shadow); transform: translate(1px, 1px); }
   .camp-scan-actions button:disabled { opacity: .5; cursor: default; }
+  .camp-scan-empty { text-align: center; padding: 22px 0; }
+  .camp-scan-empty .camp-scan-actions { justify-content: center; }
   .camp-scan-page {
     min-width: 30px; height: 26px;
     border: 3px solid var(--ui-border); border-radius: 0;
@@ -987,7 +989,7 @@ SCENE_JS = r"""
 
   function renderLedger() {
     panelTitle.textContent = '营地账本';
-    panelSub.textContent = '情报＝痛点 · 点子＝想法 · 计划＝待拍板';
+    panelSub.textContent = '痛点发现＝痛点 · 点子＝想法 · 计划＝待拍板';
     if (payload.images && payload.images.ledger_daqi) {
       const daqiRow = make('div', 'camp-ledger-daqi');
       const daqiImg = document.createElement('img');
@@ -1005,7 +1007,7 @@ SCENE_JS = r"""
     scanBtn.style.marginBottom = '12px';
     scanBtn.addEventListener('click', () => openView('scan'));
     panelBody.append(scanBtn);
-    const labels = {intel: '情报', idea: '点子', plan: '计划'};
+    const labels = {intel: '痛点发现', idea: '点子', plan: '计划'};
     const tags = Object.entries(labels).map(([key, label]) => ({
       key, label, count: payload.ledger.filter((item) => item.stage === key).length
     }));
@@ -1028,8 +1030,7 @@ SCENE_JS = r"""
       row.append(head);
       const meta = [['为什么现在出现', item.why_now], ['证据', item.evidence], ['最小验证', item.probe]];
       meta.forEach(([label, value]) => {
-        if (!value || value === '—') return;
-        row.append(make('div', 'camp-entry-line', `${label}：${value}`));
+        row.append(make('div', 'camp-entry-line', `${label}：${value && value !== '—' ? value : '—'}`));
       });
       const del = make('button', 'camp-del', '×');
       del.title = '删除';
@@ -1043,8 +1044,28 @@ SCENE_JS = r"""
       row.append(del);
       list.append(row);
     });
+    const pages = Math.ceil(items.length / PAGE_SIZE);
+    if (pages > 1) {
+      const pager = make('div', 'camp-scan-pages');
+      for (let p = 0; p < pages; p += 1) {
+        const btn = make('button', `camp-scan-page${p === state.ledgerPage ? ' on' : ''}`, String(p + 1));
+        btn.type = 'button';
+        btn.addEventListener('click', () => { state.ledgerPage = p; renderState(); });
+        pager.append(btn);
+      }
+      panelBody.append(pager);
+    }
     panelBody.append(list);
-    addPages(items.length, state.ledgerPage, (page) => { state.ledgerPage = page; renderState(); });
+    if (items.length > PAGE_SIZE) {
+      const pager2 = make('div', 'camp-scan-pages');
+      for (let p = 0; p < pages; p += 1) {
+        const btn = make('button', `camp-scan-page${p === state.ledgerPage ? ' on' : ''}`, String(p + 1));
+        btn.type = 'button';
+        btn.addEventListener('click', () => { state.ledgerPage = p; renderState(); });
+        pager2.append(btn);
+      }
+      panelBody.append(pager2);
+    }
   }
 
   function deepDive(project, button, resultBox) {
@@ -1281,7 +1302,16 @@ SCENE_JS = r"""
     panelSub.textContent = '找点子 · 找项目';
     const scan = payload.scan;
     if (!scan) {
-      addEmpty('还没有扫描记录。对达奇说：扫描');
+      const wrap = make('div', 'camp-scan-empty');
+      wrap.append(make('div', 'camp-scan-head', '营地第一条命脉：先把你的点子找回来。'));
+      const actions = make('div', 'camp-scan-actions');
+      const btn = make('button', '', '扫本地 Agent');
+      btn.type = 'button';
+      btn.addEventListener('click', () => bridgePost('/scan', {}, btn));
+      actions.append(btn);
+      wrap.append(actions);
+      wrap.append(make('div', 'camp-item-time camp-mono', '只读 cwd 和时间戳，不读你的对话。'));
+      panelBody.append(wrap);
       return;
     }
     const pct = Number(scan.percent || 0);
@@ -1303,7 +1333,7 @@ SCENE_JS = r"""
     panelBody.append(phaseRow);
 
     if (Array.isArray(scan.candidates) && scan.candidates.length) {
-      panelBody.append(make('div', 'camp-scan-head', `工作区候选 — 每页 ${SCAN_PAGE_SIZE} 条：勾选 → 浅读/深读 → 提交到账本`));
+      panelBody.append(make('div', 'camp-scan-head', '勾几个工作区，剩下的交给达奇。'));
       const list = make('div', 'camp-list');
       const saved = scanSelection();
       let commandInput = null;
@@ -1388,7 +1418,7 @@ SCENE_JS = r"""
     }
 
     if (Array.isArray(scan.proposals) && scan.proposals.length) {
-      panelBody.append(make('div', 'camp-scan-head', '提炼候选 — 确认后才会写入账本/马厩'));
+      panelBody.append(make('div', 'camp-scan-head', '这波挖到的，都是新的：'));
       const list = make('div', 'camp-list');
       scan.proposals.forEach((p) => {
         const row = make('div', 'camp-entry');
@@ -1412,7 +1442,15 @@ SCENE_JS = r"""
       }
     }
 
-    if (scan.applied) panelBody.append(make('div', 'camp-notice', `已于 ${scan.applied} 写入账本与马厩`));
+    if (scan.applied) {
+      const done = make('div', 'camp-notice',
+        `本次已入库：${scan.applied_pool || 0} 条进账本，${scan.applied_shelf || 0} 个项目进马厩。这波扫完了，去账本看看。`);
+      panelBody.append(done);
+      const backBtn = make('button', 'camp-panel-back', '返回账本');
+      backBtn.type = 'button';
+      backBtn.addEventListener('click', () => openView('ledger'));
+      panelBody.append(backBtn);
+    }
   }
 
   function renderSettings() {
@@ -1468,7 +1506,8 @@ SCENE_JS = r"""
       button.setAttribute('aria-hidden', String(!available));
       button.tabIndex = available ? 0 : -1;
     });
-    camp.querySelectorAll('[data-time-mode]').forEach((button) => {
+    if (!payload.scan) openView('scan');
+  camp.querySelectorAll('[data-time-mode]').forEach((button) => {
       button.setAttribute('aria-pressed', String(button.dataset.timeMode === state.timeMode));
     });
     if (state.view !== 'overview') renderPanel();
@@ -1913,7 +1952,7 @@ def render_html(store: Path, pool: list[dict], projects: list[dict], profile: di
   </header>
 
   <button type="button" class="camp-feature camp-feature-ledger" data-view="ledger" aria-expanded="false">
-    <strong>营地账本</strong><span>情报＝痛点 · 点子＝想法 · 计划＝待拍板</span>
+    <strong>营地账本</strong><span>痛点发现 · 点子 · 计划</span>
   </button>
   <button type="button" class="camp-feature camp-feature-self" data-view="self" aria-expanded="false">
     <strong>火</strong><span>你是谁？</span>
@@ -1967,13 +2006,13 @@ def summarize(store: Path, pool: list[dict], projects: list[dict], out: Path,
     total_projects = sum(band_counts.values())
     lines = ["营地清点完毕："]
     lines.append(
-        f"账本 — 情报 {counts['intel']} · 点子 {counts['idea']} · 计划 {counts['plan']}（共 {total_ideas}）"
+        f"账本里 痛点发现 {counts['intel']} · 点子 {counts['idea']} · 计划 {counts['plan']}（共 {total_ideas}）"
     )
     lines.append(
-        f"马厩 — 在跑 {band_counts['riding']} · 松了 {band_counts['loose']} · 歇马 {band_counts['stabled']}（共 {total_projects}）"
+        f"马厩 在跑 {band_counts['riding']} · 松了 {band_counts['loose']} · 歇马 {band_counts['stabled']}（共 {total_projects}）"
     )
     if total_ideas == 0 and total_projects == 0:
-        lines.append("账本和马厩还是空的。说「我发现……」记情报，「我想做……」记点子。")
+        lines.append("账本和马厩还是空的。说一句「我发现……」或「我想做……」，营地就开张了。")
     if warnings:
         lines.append("解析提示：")
         lines.extend(f"  - {w}" for w in warnings)

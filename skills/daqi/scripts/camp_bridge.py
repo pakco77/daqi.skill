@@ -218,7 +218,7 @@ class Handler(BaseHTTPRequestHandler):
                 lines.append(f"[{f.get('type')}] {f.get('title')} — {(f.get('line') or '')[:120]}")
             if not lines:
                 lines.append("没有读到上下文文件。")
-            text = "\n".join(lines) + "\n（只显示，未写账本。）"
+            text = "\n".join(lines) + "\n（看完就完了，账本没动。）"
             self._send(200, {"ok": True, "text": text})
         except Exception as error:
             self._send(500, {"ok": False, "error": str(error)})
