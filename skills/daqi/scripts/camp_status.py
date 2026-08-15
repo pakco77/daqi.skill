@@ -704,6 +704,15 @@ SCENE_CSS = r"""
     box-shadow: 2px 2px 0 0 var(--ui-shadow);
   }
   .camp-scan-page.on { background: var(--ui-ink); color: var(--ui-bg); border-color: var(--ui-ink); }
+  .camp-ledger-daqi { display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+                      border: 2px solid var(--ui-border); background: var(--ui-bg); padding: 10px 12px; }
+  .camp-ledger-daqi img { border: 1px solid var(--ui-ink); }
+  .camp-ledger-daqi-text { font-family: var(--camp-px-font); font-size: 11px; color: var(--ui-soft); }
+  .camp-morgan { display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+                 border: 2px solid var(--ui-border); background: var(--ui-bg); padding: 10px 12px; }
+  .camp-morgan img { border: 1px solid var(--ui-ink); }
+  .camp-morgan-name { font-family: var(--camp-px-font); font-size: 12px; letter-spacing: .1em; }
+  .camp-morgan-line { margin-top: 3px; font-size: 11px; color: var(--ui-soft); }
   .camp-modal { position: fixed; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center;
                 background: rgba(5, 5, 5, .55); }
   .camp-modal[hidden] { display: none; }
@@ -968,6 +977,18 @@ SCENE_JS = r"""
   function renderLedger() {
     panelTitle.textContent = '营地账本';
     panelSub.textContent = '情报 · 点子 · 计划';
+    if (payload.images && payload.images.ledger_daqi) {
+      const daqiRow = make('div', 'camp-ledger-daqi');
+      const daqiImg = document.createElement('img');
+      daqiImg.className = 'dither';
+      daqiImg.src = payload.images.ledger_daqi;
+      daqiImg.width = 64;
+      daqiImg.height = 64;
+      daqiImg.alt = '达奇';
+      daqiRow.append(daqiImg);
+      daqiRow.append(make('div', 'camp-ledger-daqi-text', '达奇替你守着这本账。'));
+      panelBody.append(daqiRow);
+    }
     const scanBtn = make('button', 'camp-panel-back camp-scan-open', '扫描 · 找点子 / 找项目');
     scanBtn.type = 'button';
     scanBtn.style.marginBottom = '12px';
@@ -1076,6 +1097,35 @@ SCENE_JS = r"""
     }
     panelTitle.textContent = '马厩';
     panelSub.textContent = '干一票';
+    if (payload.images && payload.images.morgan) {
+      const riding = payload.projects.filter((item) => item.display_band === 'riding').length;
+      const loose = payload.projects.filter((item) => item.display_band === 'week').length;
+      const lines = [
+        `摩根看马。${riding} 匹在跑，够组一队了。`,
+        `松了缰绳的有 ${loose} 匹——放心，我盯着呢。`,
+        '点子王，马都还认你。',
+        '营地这点事，达奇说了算；马的事，我说了算。',
+      ];
+      const card = make('div', 'camp-morgan');
+      const img = document.createElement('img');
+      img.className = 'dither';
+      img.src = payload.images.morgan;
+      img.width = 48;
+      img.height = 48;
+      img.alt = '摩根';
+      card.append(img);
+      const bubble = make('div', 'camp-morgan-bubble');
+      const name = make('div', 'camp-morgan-name', '摩根');
+      const line = make('div', 'camp-morgan-line', lines[0]);
+      bubble.append(name, line);
+      card.append(bubble);
+      panelBody.append(card);
+      let morganIndex = 0;
+      window.setInterval(() => {
+        morganIndex = (morganIndex + 1) % lines.length;
+        line.textContent = lines[morganIndex];
+      }, 6000);
+    }
     const definitions = [
       ['riding', '在跑'], ['week', '7 天没动'], ['month', '30 天没动']
     ];
@@ -1732,6 +1782,8 @@ def render_html(store: Path, pool: list[dict], projects: list[dict], profile: di
             settings["has_key"] = bool(str(llm.get("api_key", "")).strip())
         except (OSError, json.JSONDecodeError):
             pass
+    ledger_daqi = asset_data_uri("daqi-ledger.png")
+    morgan = asset_data_uri("morgan.png")
     payload = {
         "ledger": pool,
         "projects": projects,
@@ -1739,6 +1791,7 @@ def render_html(store: Path, pool: list[dict], projects: list[dict], profile: di
         "warnings": warnings,
         "scan": scan_state,
         "settings": settings,
+        "images": {"ledger_daqi": ledger_daqi, "morgan": morgan},
         "generated_at": gen_ts.isoformat(),
     }
     payload_json = json.dumps(payload, ensure_ascii=False).replace("</", "<\\/")

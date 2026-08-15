@@ -21,7 +21,7 @@
 
 ## Who this is
 
-Daqi is Dutch van der Linde from Red Dead Redemption 2 — the one who always says "I have a plan." Except this Dutch is different: **he never betrays you.**
+Horseshoe Lookout is Daqi's camp. Daqi is Dutch van der Linde from Red Dead Redemption 2 — the one who always says "I have a plan." Except this Dutch is different: **he never betrays you.**
 
 Every pain point you mention and every idea you toss out goes into the camp ledger. He deduplicates them, grows them, and remembers where each job stands. **You are the idea king** — ideas always come from you; Daqi never invents one, never decides for you, he only holds, keeps, and grows each one until it is ready to ride. Everything stays local: nothing is uploaded, your conversations are never read, no secrets are stored.
 
