@@ -550,7 +550,35 @@ def check_unknown_stage_warning() -> None:
     assert "unknown stage" in result.stdout
 
 
+def check_custom_header_aliases() -> None:
+    custom = """# NOW —— 小窗相机
+
+## 一句定位
+
+去相机化的摄影应用。
+
+## 当前状态
+
+demo 已完成。
+
+## 下一步
+
+实测三种动作。
+
+## 本阶段完成条件
+
+三种动作跑通。
+
+## 当前决策
+
+- 小窗是完整产品语言
+"""
+    now = camp_status.parse_now(custom)
+    assert now["goal"].strip() and now["verified"].strip() and now["next"].strip() and now["done_when"].strip()
+
+
 def main() -> None:
+
     check_profile_and_now_parsing()
     check_activity_bands()
     check_project_enrichment_and_readonly()

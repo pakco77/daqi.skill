@@ -1513,6 +1513,13 @@ NOW_SECTIONS = {
     "next": "next",
     "done when": "done_when",
 }
+# 老项目自定义标题的别名（前缀匹配，canonical 优先）
+NOW_ALIASES = [
+    ("项目定义", "goal"), ("一句定位", "goal"), ("定位", "goal"),
+    ("当前状态", "verified"), ("上次到哪", "verified"), ("已验证", "verified"), ("现状", "verified"),
+    ("下一步", "next"), ("现在在做", "next"),
+    ("完成条件", "done_when"), ("本阶段完成条件", "done_when"), ("落地条件", "done_when"),
+]
 
 
 def parse_now(text: str) -> dict:
@@ -1521,7 +1528,13 @@ def parse_now(text: str) -> dict:
     for raw in text.splitlines():
         line = raw.strip()
         if line.startswith("## "):
-            current = NOW_SECTIONS.get(line[3:].strip().lower())
+            header = line[3:].strip().lower()
+            current = NOW_SECTIONS.get(header)
+            if current is None:
+                for alias, key in NOW_ALIASES:
+                    if header.startswith(alias):
+                        current = key
+                        break
             continue
         if current and line and not line.startswith("---"):
             chunks[current].append(line.removeprefix("- ").strip())
