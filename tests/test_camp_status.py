@@ -452,8 +452,8 @@ def check_counts_and_readonly() -> None:
 
     html = out.read_text()
     assert "营地账本" in html
-    assert "情报 · 点子 · 计划" in html
-    assert "马厩" in html and "干一票" in html
+    assert "情报＝痛点 · 点子＝想法 · 计划＝待拍板" in html
+    assert "马厩" in html and "在跑的项目" in html
     assert ">火<" in html and "你是谁？" in html
     assert "7 天没动" in html and "30 天没动" in html
     assert "观火观己" in html

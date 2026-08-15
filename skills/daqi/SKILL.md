@@ -108,6 +108,9 @@ Route common suffixes as follows:
 | `整理已有项目…` / `接手这个项目…` | `organize this existing project…` / `take over this project…` | Inventory the exact existing root, recover its main line, then propose organization without moving it by default |
 | `整理 <项目名>` / `整理马厩 <项目名>` | `organize <project>` | Resolve the project's real path from SHELF, run `scripts/organize_stable.py` for a read-only plan, apply after one confirmation; every move is logged and nothing is deleted |
 | `收工` / `交接` | `handoff` / `wrap up` | Update project continuity and give one closing feedback line |
+| `/daqi-search` | — | Preset command for any Agent: run the scan flow — list workspace candidates, read the selected ones, propose ideas/projects with a token |
+| `/daqi-camp` | — | Preset command for any Agent: render and open the camp panel (camp_status.py + open on macOS) |
+| `/daqi-deep <项目>` | — | Preset command for any Agent: deep-dive one project's progress (long-running; progress lines + camp-page progress, shallow fallback without a brain key) |
 | `整理项目…` | `organize project…` | Call `project-fold` using the selected language |
 
 `/达奇` is a language alias, not a guaranteed native slash command in every runtime. `$daqi` and `/daqi` cover the two common explicit Skill invocation styles.

@@ -976,7 +976,7 @@ SCENE_JS = r"""
 
   function renderLedger() {
     panelTitle.textContent = '营地账本';
-    panelSub.textContent = '情报 · 点子 · 计划';
+    panelSub.textContent = '情报＝痛点 · 点子＝想法 · 计划＝待拍板';
     if (payload.images && payload.images.ledger_daqi) {
       const daqiRow = make('div', 'camp-ledger-daqi');
       const daqiImg = document.createElement('img');
@@ -1096,7 +1096,7 @@ SCENE_JS = r"""
       return;
     }
     panelTitle.textContent = '马厩';
-    panelSub.textContent = '干一票';
+    panelSub.textContent = '在跑的项目，每匹带主线';
     if (payload.images && payload.images.morgan) {
       const riding = payload.projects.filter((item) => item.display_band === 'riding').length;
       const loose = payload.projects.filter((item) => item.display_band === 'week').length;
@@ -1852,13 +1852,13 @@ def render_html(store: Path, pool: list[dict], projects: list[dict], profile: di
   </header>
 
   <button type="button" class="camp-feature camp-feature-ledger" data-view="ledger" aria-expanded="false">
-    <strong>营地账本</strong><span>情报 · 点子 · 计划</span>
+    <strong>营地账本</strong><span>情报＝痛点 · 点子＝想法 · 计划＝待拍板</span>
   </button>
   <button type="button" class="camp-feature camp-feature-self" data-view="self" aria-expanded="false">
     <strong>火</strong><span>你是谁？</span>
   </button>
   <button type="button" class="camp-feature camp-feature-stable" data-view="stable" aria-expanded="false">
-    <strong>马厩</strong><span>干一票</span>
+    <strong>马厩</strong><span>在跑的项目</span>
   </button>
 
   <button type="button" class="camp-back" data-action="back" hidden>返回上一层 ↓</button>
