@@ -104,6 +104,7 @@ Route common suffixes as follows:
 | `立项` / `出发` | `promote` / `ride out` | Only this boss-owned word turns a plan into a project: add one SHELF row and establish minimal context |
 | `盘点` / `营地` / `清点` | `camp` / `count` / `camp view` | Render the read-only camp view: run `scripts/camp_status.py`, print its summary, and give the HTML path |
 | `扫描` / `扫点子` | `scan` | Scan Agent history metadata (cwd+timestamps only, never transcripts), list candidates, read the selected workspaces, show proposals, and write POOL/SHELF only after token confirmation |
+| `补主线` | `fill now` | For stables missing NOW: list them, print context previews for the agent brain, mint a token on the distilled four-field candidates, and write `00_Context/NOW.md` only after token confirmation; existing NOW files are never overwritten |
 | `整理已有项目…` / `接手这个项目…` | `organize this existing project…` / `take over this project…` | Inventory the exact existing root, recover its main line, then propose organization without moving it by default |
 | `整理 <项目名>` / `整理马厩 <项目名>` | `organize <project>` | Resolve the project's real path from SHELF, run `scripts/organize_stable.py` for a read-only plan, apply after one confirmation; every move is logged and nothing is deleted |
 | `收工` / `交接` | `handoff` / `wrap up` | Update project continuity and give one closing feedback line |

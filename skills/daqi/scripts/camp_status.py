@@ -677,7 +677,12 @@ SCENE_CSS = r"""
     100% { background-position: 12px 12px; }
   }
   .camp-panel { width: clamp(520px, 46vw, 660px); }
-  .camp-entry, .camp-project { position: relative; min-height: 64px; }
+  .camp-entry { position: relative; display: block; padding: 12px 46px 12px 14px; min-height: 64px; }
+  .camp-project { position: relative; min-height: 64px; }
+  .camp-entry-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .camp-entry-line { margin-top: 5px; color: var(--ui-soft); font-size: 11px; line-height: 1.5;
+                     overflow-wrap: anywhere; }
+  .camp-entry-line::before { content: "▸ "; color: var(--ui-border); }
   .camp-item-progress { margin-top: 4px; color: var(--ui-soft); font-size: 10px;
                         overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 420px; }
   .camp-item-progress.has-now { color: var(--ui-ink); }
@@ -985,10 +990,15 @@ SCENE_JS = r"""
     const list = make('div', 'camp-list');
     items.slice(state.ledgerPage * PAGE_SIZE, (state.ledgerPage + 1) * PAGE_SIZE).forEach((item) => {
       const row = make('div', 'camp-entry');
-      const left = make('div', '');
-      left.append(make('div', 'camp-item-title', item.text || '未命名条目'));
-      left.append(make('div', 'camp-item-time camp-mono', item.last_seen || '时间未知'));
-      row.append(left);
+      const head = make('div', 'camp-entry-head');
+      head.append(make('div', 'camp-item-title', item.text || '未命名条目'));
+      head.append(make('div', 'camp-item-time camp-mono', item.last_seen || '时间未知'));
+      row.append(head);
+      const meta = [['为什么现在出现', item.why_now], ['证据', item.evidence], ['最小验证', item.probe]];
+      meta.forEach(([label, value]) => {
+        if (!value || value === '—') return;
+        row.append(make('div', 'camp-entry-line', `${label}：${value}`));
+      });
       const del = make('button', 'camp-del', '×');
       del.title = '删除';
       del.type = 'button';
@@ -1581,8 +1591,17 @@ def parse_pool(text: str) -> tuple[list[dict], list[str]]:
         rest = m.group(2).strip()
         parts = [p.strip() for p in re.split(r"[｜|]", rest)]
         text_part = parts[0] if parts else ""
+        mids = parts[1:-1] if len(parts) > 2 else []
         last_seen = parts[-1] if len(parts) > 1 else ""
-        entries.append({"stage": stage, "text": text_part, "last_seen": last_seen, "raw": line})
+        entries.append({
+            "stage": stage,
+            "text": text_part,
+            "why_now": mids[0] if mids else "",
+            "evidence": mids[1] if len(mids) > 1 else "",
+            "probe": mids[2] if len(mids) > 2 else "",
+            "last_seen": last_seen,
+            "raw": line,
+        })
     return entries, warnings
 
 
@@ -1622,6 +1641,21 @@ def flatten_projects(bands: dict[str, list[dict]]) -> list[dict]:
     return [dict(project) for key, _ in BANDS for project in bands[key]]
 
 
+def find_now_file(path: str) -> Path | None:
+    """Locate a project's NOW main line at common positions (00_Context/, root, one level deep)."""
+    root = Path(path)
+    candidates = [root / "00_Context" / "NOW.md", root / "NOW.md"]
+    try:
+        for child in root.iterdir():
+            if not child.is_dir() or child.name.startswith("."):
+                continue
+            candidates.append(child / "NOW.md")
+            candidates.append(child / "00_Context" / "NOW.md")
+    except OSError:
+        pass
+    return next((c for c in candidates if c.is_file()), None)
+
+
 def enrich_projects(projects: list[dict], now: datetime.date | datetime.datetime) -> tuple[list[dict], list[str]]:
     enriched = []
     warnings = []
@@ -1631,9 +1665,9 @@ def enrich_projects(projects: list[dict], now: datetime.date | datetime.datetime
         item["now"] = None
         path = item.get("path", "")
         if path:
-            now_path = Path(path) / "00_Context" / "NOW.md"
+            now_path = find_now_file(path)
             try:
-                if now_path.is_file():
+                if now_path is not None and now_path.is_file():
                     checkpoint = parse_now(now_path.read_text(encoding="utf-8"))
                     if all(checkpoint.values()):
                         item["now"] = checkpoint
