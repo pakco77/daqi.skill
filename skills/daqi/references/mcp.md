@@ -22,7 +22,25 @@ python3 <skill-dir>/scripts/daqi_mcp.py --store ~/.daqi
 
 - **Claude Code / Claude Desktop**：`claude mcp add daqi -- python3 <skill-dir>/scripts/daqi_mcp.py --store ~/.daqi`（Desktop 等价于 `claude_desktop_config.json` 里加 `mcpServers.daqi` 条目）。
 - **Cursor**：`.cursor/mcp.json` 注册同样的 stdio 命令。
-- **DSH / WorkBuddy**：按本机 DSH 的 MCP 客户端配置把脚本注册为 stdio server；具体配置路径以当前版本实测为准。
+- **DSH / WorkBuddy**：把下面的实例写进 profile 的 `cordis.patch.yml`（本机已写入 `~/.dsh/profiles/web/cordis.patch.yml`，重启 DSH 生效），工具注册为 `mcp__daqi__<工具名>`：
+
+  ```yaml
+  [
+    {
+      name: mcp-client,
+      config: {
+        transport: stdio,
+        serverName: daqi,
+        command: python3,
+        args: [
+          /Users/pakco/.agents/skills/daqi/scripts/daqi_mcp.py,
+          --store,
+          /Users/pakco/.daqi,
+        ],
+      },
+    },
+  ]
+  ```
 - 其它宿主：任何支持 MCP stdio 的客户端都能直接连。
 
 ## Codex 实测记录（2026-08-15，已验收）

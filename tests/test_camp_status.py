@@ -456,7 +456,7 @@ def check_counts_and_readonly() -> None:
     assert "马厩" in html and "干一票" in html
     assert ">火<" in html and "你是谁？" in html
     assert "7 天没动" in html and "30 天没动" in html
-    assert "达奇对你的认知" in html
+    assert "观火观己" in html
     assert "这票到哪了" in html
     assert html.count("data:image/png;base64,") >= 2
     assert "/work/a" in html and "/work/b" in html

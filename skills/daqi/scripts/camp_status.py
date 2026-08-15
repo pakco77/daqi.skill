@@ -1184,7 +1184,7 @@ SCENE_JS = r"""
   }
 
   function renderProfile() {
-    panelTitle.textContent = '达奇对你的认知';
+    panelTitle.textContent = '观火观己';
     panelSub.textContent = '';
     if (!payload.profile.traits.length && !payload.profile.goals.length) {
       addEmpty('现在还认不出你');
