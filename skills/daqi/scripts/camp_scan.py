@@ -256,7 +256,16 @@ def call_brain(cfg: dict, previews: list[dict]) -> list[dict]:
 
 
 def agent_command() -> str | None:
-    return next((c for c in ("codex", "claude") if shutil.which(c)), None)
+    for c in ("codex", "claude"):
+        found = shutil.which(c)
+        if found:
+            return found
+    local_bin = Path.home() / ".local" / "bin"
+    for c in ("codex", "claude"):
+        candidate = local_bin / c
+        if candidate.is_file():
+            return str(candidate)
+    return None
 
 
 def call_agent_brain(cfg: dict, previews: list[dict]) -> list[dict]:
