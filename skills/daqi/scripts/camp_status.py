@@ -679,10 +679,10 @@ SCENE_CSS = r"""
     100% { background-position: 12px 12px; }
   }
   .camp-panel { width: clamp(520px, 46vw, 660px); }
-  .camp-entry { position: relative; display: block; padding: 12px 46px 12px 14px; min-height: 64px; }
+  .camp-entry { position: relative; display: grid; padding: 10px 46px 10px 14px; min-height: 84px; gap: 4px; }
   .camp-project { position: relative; min-height: 64px; }
-  .camp-entry-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-right: 30px; }
-  .camp-entry-line { margin-top: 6px; color: var(--ui-soft); font-size: 11px; line-height: 1.6;
+  .camp-entry-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding-right: 30px; }
+  .camp-entry-line { margin: 0; color: var(--ui-soft); font-size: 11px; line-height: 1.45;
                      overflow-wrap: break-word; }
   .camp-entry-line::before { content: "▸ "; color: var(--ui-border); }
   .camp-item-progress { margin-top: 4px; color: var(--ui-soft); font-size: 10px;
@@ -817,10 +817,10 @@ SCENE_CSS = r"""
     background: #111111;
     color: #F5F5F2;
   }
-  .camp-item-title { overflow: hidden; font-size: 13px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+  .camp-item-title { font-size: 13px; font-weight: 650; overflow-wrap: anywhere; }
   .camp-item-meta { margin-top: 3px; color: #72726C; font-size: 10px; }
   .camp-project:hover .camp-item-meta { color: #C9C9C2; }
-  .camp-item-time { color: #72726C; font-size: 10px; white-space: nowrap; }
+  .camp-item-time { color: #72726C; font-size: 10px; }
   .camp-empty {
     padding: 26px 16px;
     border: 1px dashed #C9C9C2;
@@ -1138,21 +1138,24 @@ SCENE_JS = r"""
       head.append(make('div', 'camp-item-title', item.text || '未命名条目'));
       head.append(make('div', 'camp-item-time camp-mono', item.last_seen || '时间未知'));
       row.append(head);
+      const detailLines = [];
       if (item.stage === 'intel') {
         const linked = payload.ledger.filter((e) => e.stage === 'idea' && e.link && e.link.includes(item.text.slice(0, 12)));
         if (linked.length) {
-          row.append(make('div', 'camp-entry-line has-now', `${linked.length} 个点子正在攻它：${linked.map((e) => e.text.slice(0, 14)).join('、')}`));
+          detailLines.push(`${linked.length} 个点子正在攻它：${linked.map((e) => e.text.slice(0, 18)).join('、')}`);
         } else {
-          row.append(make('div', 'camp-entry-line', '还没有点子接它——说「我想做……」时提一嘴这个痛点，达奇会挂上。'));
+          detailLines.push('还没有点子接它——说「我想做……」时提一嘴这个痛点，达奇会挂上。');
         }
-      }
-      if (item.stage === 'idea' && item.link && item.link !== '—') {
-        row.append(make('div', 'camp-entry-line has-now', `来自痛点：${item.link}`));
+      } else if (item.stage === 'idea' && item.link && item.link !== '—') {
+        detailLines.push(`来自痛点：${item.link}`);
+      } else if (item.stage === 'idea') {
+        detailLines.push('尚未关联痛点。');
       }
       const meta = [['为什么现在出现', item.why_now], ['证据', item.evidence], ['最小验证', item.probe]];
       meta.forEach(([label, value]) => {
-        row.append(make('div', 'camp-entry-line', `${label}：${value && value !== '—' ? value : '—'}`));
+        detailLines.push(`${label}：${value && value !== '—' ? value : '—'}`);
       });
+      detailLines.slice(0, 3).forEach((line) => row.append(make('div', 'camp-entry-line', line)));
       const del = make('button', 'camp-del', '×');
       del.title = '删除';
       del.type = 'button';
