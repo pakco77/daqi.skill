@@ -591,7 +591,7 @@ SCENE_CSS = r"""
   .camp-panel { border: 3px solid var(--ui-ink); border-radius: 0;
                 background: var(--ui-bg); color: var(--ui-ink);
                 box-shadow: 4px 4px 0 0 var(--ui-shadow); }
-  .camp-panel-head { display: flex; align-items: flex-start; gap: 10px; border-bottom: 2px solid var(--ui-border); }
+  .camp-panel-head { display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; border-bottom: 2px solid var(--ui-border); }
   .camp-panel-head-text { min-width: 0; }
   .camp-panel-head p { color: var(--ui-soft); }
   .camp-panel-back {
@@ -679,12 +679,24 @@ SCENE_CSS = r"""
     100% { background-position: 12px 12px; }
   }
   .camp-panel { width: clamp(520px, 46vw, 660px); }
-  .camp-entry { position: relative; display: grid; padding: 10px 46px 10px 14px; min-height: 84px; gap: 4px; }
+  .camp-entry { position: relative; display: grid; padding: 10px 46px 10px 14px; min-height: 84px; gap: 4px;
+               grid-template-columns: 1fr; align-items: start; }
   .camp-project { position: relative; min-height: 64px; }
-  .camp-entry-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding-right: 30px; }
+  .camp-entry-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 12px;
+    padding-right: 30px;
+  }
   .camp-entry-line { margin: 0; color: var(--ui-soft); font-size: 11px; line-height: 1.45;
                      overflow-wrap: break-word; }
   .camp-entry-line::before { content: "▸ "; color: var(--ui-border); }
+  .camp-entry summary { cursor: pointer; font-size: 10px; color: var(--ui-soft); }
+  .camp-entry summary::marker { content: ""; }
+  .camp-entry summary:hover { color: var(--ui-ink); }
+  .camp-entry-more-lines { display: grid; gap: 4px; margin-top: 4px; }
+  .camp-entry-more .camp-entry-line::before { content: none; }
   .camp-item-progress { margin-top: 4px; color: var(--ui-soft); font-size: 10px;
                         overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 420px; }
   .camp-item-progress.has-now { color: var(--ui-ink); }
@@ -718,10 +730,30 @@ SCENE_CSS = r"""
     box-shadow: 2px 2px 0 0 var(--ui-shadow);
   }
   .camp-scan-page.on { background: var(--ui-ink); color: var(--ui-bg); border-color: var(--ui-ink); }
+  .camp-panel-head-action {
+    margin-left: auto;
+    border: 3px solid var(--ui-ink);
+    border-radius: 0;
+    background: var(--ui-bg);
+    color: var(--ui-ink);
+    font-family: var(--camp-px-font);
+    font-size: 11px;
+    padding: 4px 10px;
+    cursor: pointer;
+    box-shadow: 3px 3px 0 0 var(--ui-shadow);
+  }
+  .camp-panel-head-action:hover {
+    transform: translate(1px, 1px);
+    box-shadow: -3px -3px 0 0 var(--ui-shadow);
+  }
   .camp-ledger-daqi { display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
                       border: 2px solid var(--ui-border); background: var(--ui-bg); padding: 10px 12px; }
   .camp-ledger-daqi img { border: 1px solid var(--ui-ink); }
   .camp-ledger-daqi-text { font-family: var(--camp-px-font); font-size: 11px; color: var(--ui-soft); }
+  .camp-ledger-scan-btn {
+    margin-left: auto;
+    white-space: nowrap;
+  }
   .camp-morgan { display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
                  border: 2px solid var(--ui-border); background: var(--ui-bg); padding: 10px 12px; }
   .camp-morgan img { border: 1px solid var(--ui-ink); }
@@ -754,6 +786,14 @@ SCENE_CSS = r"""
   .camp-scan-steps { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-bottom: 10px; }
   .camp-scan-step { border: 2px solid var(--ui-border); background: var(--ui-bg); color: var(--ui-ink);
                     font-family: var(--camp-px-font); font-size: 11px; padding: 3px 8px; }
+  .camp-scan-proposal-line {
+    color: var(--ui-soft);
+    font-size: 10px;
+    margin-top: 3px;
+  }
+  .camp-scan-proposal-actions {
+    margin-top: 6px;
+  }
   .camp-stage-btn { position: absolute; bottom: 6px; right: 6px; z-index: 2;
                     border: 2px solid var(--ui-border); border-radius: 0;
                     background: var(--ui-bg); color: var(--ui-ink);
@@ -800,10 +840,11 @@ SCENE_CSS = r"""
     width: 100%;
     min-height: 54px;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: 1fr;
     gap: 12px;
-    align-items: center;
+    align-items: start;
     padding: 10px 12px;
+    padding-right: 32px;
     border: 1px solid #C9C9C2;
     border-radius: 1px;
     background: #FAFAF7;
@@ -817,8 +858,9 @@ SCENE_CSS = r"""
     background: #111111;
     color: #F5F5F2;
   }
-  .camp-item-title { font-size: 13px; font-weight: 650; overflow-wrap: anywhere; }
+  .camp-item-title { font-size: 13px; font-weight: 650; overflow-wrap: anywhere; min-width: 0; }
   .camp-item-meta { margin-top: 3px; color: #72726C; font-size: 10px; }
+  .camp-item-time { margin: 0; white-space: nowrap; color: #72726C; font-size: 10px; }
   .camp-project:hover .camp-item-meta { color: #C9C9C2; }
   .camp-item-time { color: #72726C; font-size: 10px; }
   .camp-empty {
@@ -865,7 +907,12 @@ SCENE_CSS = r"""
     .camp-feature-self { left: 54%; top: 55%; }
     .camp-feature-stable { right: 3%; top: 43%; }
     .camp-feature-scan { left: 3%; top: 26%; }
-    .camp-panel, .camp-panel-ledger, .camp-panel-stable, .camp-panel-self {
+  .camp-ledger-daqi { flex-wrap: wrap; }
+  .camp-ledger-scan-btn {
+    margin-left: 0;
+    margin-top: 6px;
+  }
+  .camp-panel, .camp-panel-ledger, .camp-panel-stable, .camp-panel-self {
       position: relative;
       inset: auto;
       width: calc(100% - 28px);
@@ -873,6 +920,10 @@ SCENE_CSS = r"""
       margin: 14px;
     }
     .camp-back { position: fixed; left: 14px; bottom: 14px; }
+    .camp-panel-head-action {
+      margin-left: 0;
+      margin-top: 4px;
+    }
   }
   @media (prefers-reduced-motion: reduce) {
     .camp-world, .camp-zoom-layer, .camp-scene-image { transition: none; }
@@ -889,6 +940,7 @@ SCENE_JS = r"""
   const camp = document.querySelector('.camp-app');
   const payload = JSON.parse(document.getElementById('camp-data').textContent);
   const panel = camp.querySelector('.camp-panel');
+  const panelHead = camp.querySelector('.camp-panel-head');
   const panelTitle = camp.querySelector('.camp-panel-title');
   const panelSub = camp.querySelector('.camp-panel-sub');
   const panelBody = camp.querySelector('.camp-panel-body');
@@ -1095,6 +1147,9 @@ SCENE_JS = r"""
   function renderLedger() {
     panelTitle.textContent = '营地账本';
     panelSub.textContent = '痛点 · 点子（要执行的，去马厩）';
+    const scanBtn = make('button', 'camp-panel-head-action camp-ledger-scan-btn', '扫描 · 找点子 / 找项目');
+    scanBtn.type = 'button';
+    scanBtn.addEventListener('click', () => openView('scan'));
     if (payload.images && payload.images.ledger_daqi) {
       const daqiRow = make('div', 'camp-ledger-daqi');
       const daqiImg = document.createElement('img');
@@ -1105,13 +1160,12 @@ SCENE_JS = r"""
       daqiImg.alt = '达奇';
       daqiRow.append(daqiImg);
       daqiRow.append(make('div', 'camp-ledger-daqi-text', '达奇替你守着这本账。'));
+      daqiRow.append(scanBtn);
       panelBody.append(daqiRow);
     }
-    const scanBtn = make('button', 'camp-panel-back camp-scan-open', '扫描 · 找点子 / 找项目');
-    scanBtn.type = 'button';
-    scanBtn.style.marginBottom = '12px';
-    scanBtn.addEventListener('click', () => openView('scan'));
-    panelBody.append(scanBtn);
+    if (!payload.images || !payload.images.ledger_daqi) {
+      panelBody.append(make('div', 'camp-ledger-daqi', scanBtn));
+    }
     const labels = {intel: '痛点', idea: '点子'};
     const tags = Object.entries(labels).map(([key, label]) => ({
       key, label, count: payload.ledger.filter((item) => item.stage === key).length
@@ -1142,20 +1196,31 @@ SCENE_JS = r"""
       if (item.stage === 'intel') {
         const linked = payload.ledger.filter((e) => e.stage === 'idea' && e.link && e.link.includes(item.text.slice(0, 12)));
         if (linked.length) {
-          detailLines.push(`${linked.length} 个点子正在攻它：${linked.map((e) => e.text.slice(0, 18)).join('、')}`);
+          detailLines.push(`接管 / 关联状态：${linked.length} 个点子正在攻它：${linked.map((e) => e.text.slice(0, 18)).join('、')}`);
         } else {
-          detailLines.push('还没有点子接它——说「我想做……」时提一嘴这个痛点，达奇会挂上。');
+          detailLines.push('接管 / 关联状态：还没有点子接它——说「我想做……」时提一嘴这个痛点，达奇会挂上。');
         }
       } else if (item.stage === 'idea' && item.link && item.link !== '—') {
-        detailLines.push(`来自痛点：${item.link}`);
+        detailLines.push(`接管 / 关联状态：关联痛点：${item.link}`);
       } else if (item.stage === 'idea') {
-        detailLines.push('尚未关联痛点。');
+        detailLines.push('接管 / 关联状态：尚未关联痛点。');
       }
-      const meta = [['为什么现在出现', item.why_now], ['证据', item.evidence], ['最小验证', item.probe]];
-      meta.forEach(([label, value]) => {
-        detailLines.push(`${label}：${value && value !== '—' ? value : '—'}`);
-      });
-      detailLines.slice(0, 3).forEach((line) => row.append(make('div', 'camp-entry-line', line)));
+      detailLines.push(`为什么现在出现：${item.why_now && item.why_now !== '—' ? item.why_now : '—'}`);
+      detailLines.push(`证据：${item.evidence && item.evidence !== '—' ? item.evidence : '—'}`);
+      const rowText = detailLines.slice(0, 4);
+      rowText.forEach((line) => row.append(make('div', 'camp-entry-line', line)));
+      const extras = Array.isArray(item.extra_fields) ? item.extra_fields : [];
+      if (extras.length) {
+        const more = document.createElement('details');
+        const summary = make('summary', '', '更多情报');
+        const moreBody = make('div', 'camp-entry-more-lines');
+        extras.forEach((extra) => {
+          moreBody.append(make('div', 'camp-entry-line', extra && extra !== '—' ? extra : '—'));
+        });
+        more.className = 'camp-entry-more';
+        more.append(summary, moreBody);
+        row.append(more);
+      }
       const del = make('button', 'camp-del', '×');
       del.title = '删除';
       del.type = 'button';
@@ -1399,6 +1464,44 @@ SCENE_JS = r"""
   function scanSelection() {
     try { return JSON.parse(localStorage.getItem('daqi.camp.scanSelection') || '[]'); } catch (_) { return []; }
   }
+  function readScanSelection() { return new Set(scanSelection()); }
+  function writeScanSelection(value) {
+    try { localStorage.setItem('daqi.camp.scanSelection', JSON.stringify(Array.from(value))); } catch (_) {}
+  }
+  function proposalSelection(token) {
+    if (!token) return {};
+    try { return JSON.parse(localStorage.getItem(`daqi.camp.scanProposalKeep.${token}`) || '{}'); } catch (_) { return {}; }
+  }
+  function writeProposalSelection(token, state) {
+    if (!token) return;
+    try { localStorage.setItem(`daqi.camp.scanProposalKeep.${token}`, JSON.stringify(state)); } catch (_) {}
+  }
+  function proposalFingerprint(proposal, index) {
+    return `${index}|${proposal.type || 'idea'}|${proposal.title || ''}|${proposal.source || ''}`;
+  }
+  function readProposalKeep(token, proposals) {
+    const saved = proposalSelection(token);
+    const next = {};
+    proposals.forEach((proposal, index) => {
+      const key = proposalFingerprint(proposal, index);
+      next[key] = saved[key] === undefined ? true : Boolean(saved[key]);
+    });
+    return next;
+  }
+  function writeProposalKeep(token, proposals, keepState) {
+    const state = {};
+    proposals.forEach((proposal, index) => {
+      const key = proposalFingerprint(proposal, index);
+      state[key] = Boolean(keepState[key]);
+    });
+    writeProposalSelection(token, state);
+  }
+  function proposalTypeLabel(proposal) {
+    const kind = STAGE_TOKENS[proposal.type] || proposal.type || 'idea';
+    if (kind === 'intel') return '痛点';
+    if (kind === 'idea') return '点子';
+    return '项目';
+  }
 
   function bridgePost(path, body, button) {
     button.disabled = true;
@@ -1412,53 +1515,68 @@ SCENE_JS = r"""
     });
   }
 
-  function commitScan(token, button) {
+  function commitScan(token, button, keepIndices = null) {
     button.disabled = true;
     button.classList.add('loading');
-    button.textContent = '提交中…';
+    button.textContent = '确认中…';
     fetch('http://127.0.0.1:8799/scan-commit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token })
+      body: JSON.stringify({ token, keep: keepIndices || [] })
     }).then((r) => r.json()).then((d) => {
       if (d && d.ok) { location.reload(); }
       else {
         button.disabled = false;
         button.classList.remove('loading');
         button.textContent = (d && d.error) || '提交失败';
-        setTimeout(() => { button.textContent = '提交到账本 / 马厩'; }, 1600);
+        setTimeout(() => { button.textContent = '确认带回营地'; }, 1600);
       }
     }).catch(() => {
       button.disabled = false;
       button.classList.remove('loading');
       button.textContent = '桥未启动';
-      setTimeout(() => { button.textContent = '提交到账本 / 马厩'; }, 1600);
+      setTimeout(() => { button.textContent = '确认带回营地'; }, 1600);
     });
   }
 
   function renderScan() {
-    panelTitle.textContent = '扫描';
-    panelSub.textContent = '找点子 · 找项目';
+    panelTitle.textContent = '找回散落的工作';
+    panelBody.replaceChildren();
     const scan = payload.scan;
     if (!scan) {
-      const wrap = make('div', 'camp-scan-empty');
-      wrap.append(make('div', 'camp-scan-head', '四步，找回你的点子：'));
-      const steps = make('div', 'camp-scan-steps');
-      ['① 扫本地 Agent', '② 勾工作区', '③ 深挖', '④ 提交到账本'].forEach((t) => {
-        steps.append(make('span', 'camp-scan-step', t));
+      panelSub.textContent = '先从本机 Agent 会话里找回尚未入账的项目与点子。隐私边界：只读取目录、时间和会话数元数据。';
+      const phase = make('div', 'camp-scan-phases');
+      ['找工作区', '达奇整理', '确认带回'].forEach((label, index) => {
+        const chip = make('span', `camp-scan-phase${index === 0 ? ' on' : ''}`, label);
+        phase.append(chip);
       });
-      wrap.append(steps);
-      wrap.append(make('div', 'camp-scan-head', '营地第一条命脉：先把你的点子找回来。'));
+      panelBody.append(phase);
+      const wrap = make('div', 'camp-scan-empty');
+      wrap.append(make('div', 'camp-scan-head', '第一步：先列出可扫描的工作区。'));
       const actions = make('div', 'camp-scan-actions');
-      const btn = make('button', '', '扫本地 Agent');
+      const btn = make('button', '', '找回工作区');
       btn.type = 'button';
       btn.addEventListener('click', () => bridgePost('/scan', {}, btn));
       actions.append(btn);
       wrap.append(actions);
-      wrap.append(make('div', 'camp-item-time camp-mono', '只读 cwd 和时间戳，不读你的对话。'));
+      wrap.append(make('div', 'camp-item-time camp-mono', '初始扫描只读取本地会话元数据，不读取聊天内容。'));
       panelBody.append(wrap);
       return;
     }
+    const isApplied = Boolean(scan.applied);
+    const proposals = Array.isArray(scan.proposals) ? scan.proposals : [];
+    const candidates = Array.isArray(scan.candidates) ? scan.candidates : [];
+    const hasProposals = proposals.length > 0;
+    const hasCandidates = candidates.length > 0;
+    const phaseIndex = isApplied || hasProposals ? 2 : hasCandidates ? 1 : 0;
+    const phase = make('div', 'camp-scan-phases');
+    ['找工作区', '达奇整理', '确认带回'].forEach((label, index) => {
+      const chip = make('span', `camp-scan-phase${index < phaseIndex ? ' done' : ''}${index === phaseIndex ? ' on' : ''}`, label);
+      phase.append(chip);
+    });
+    panelBody.append(phase);
+    panelSub.textContent = `共 ${candidates.length} 个候选工作区，当前进度：${isApplied ? '已完成确认带回' : hasProposals ? '已整理完成' : scan.phase || '等待开始'}`;
+
     const pct = Number(scan.percent || 0);
     const barWrap = make('div', 'camp-scan-bar');
     const fill = make('div', 'camp-scan-fill');
@@ -1466,109 +1584,127 @@ SCENE_JS = r"""
     barWrap.append(fill, make('span', 'camp-mono', `${pct}%`));
     panelBody.append(barWrap);
 
-    const phaseRow = make('div', 'camp-scan-phases');
-    let passed = false;
-    [['scan', '扫描'], ['select', '选择'], ['read', '读取'], ['brain', '提炼'], ['commit', '提交']].forEach(([key, label]) => {
-      const chip = make('span', 'camp-scan-phase', label);
-      if (scan.phase === key) { chip.classList.add('on'); passed = true; }
-      else if (passed) {}
-      else chip.classList.add('done');
-      phaseRow.append(chip);
-    });
-    panelBody.append(phaseRow);
+    if (scan.phase === 'read' || scan.phase === 'brain') {
+      const items = Array.isArray(scan.items) ? scan.items : [];
+      const count = Math.max(items.length, 1);
+      panelBody.append(make('div', 'camp-scan-head', `达奇正在从 ${count} 个工作区整理线索`));
+    }
 
-    if (Array.isArray(scan.candidates) && scan.candidates.length) {
-      panelBody.append(make('div', 'camp-scan-head', '勾几个工作区，剩下的交给达奇。'));
+    if (hasCandidates && !hasProposals && !isApplied) {
+      panelBody.append(make('div', 'camp-scan-head', '第二步：挑选工作区，剩下的交给达奇。'));
+      const selected = readScanSelection();
       const list = make('div', 'camp-list');
-      const saved = scanSelection();
-      let commandInput = null;
-      const refreshCommand = () => {
-        const pagePaths = scan.candidates
-          .slice(scanPage * SCAN_PAGE_SIZE, (scanPage + 1) * SCAN_PAGE_SIZE)
-          .map((c) => c.path);
-        const savedPaths = scanSelection().filter((p) => !pagePaths.includes(p));
-        Array.from(list.querySelectorAll('input:checked')).forEach((i) => savedPaths.push(i.value));
-        try { localStorage.setItem('daqi.camp.scanSelection', JSON.stringify(savedPaths)); } catch (_) {}
-        const nums = savedPaths.map((p) => {
-          const idx = scan.candidates.findIndex((c) => c.path === p);
-          return idx >= 0 ? String(idx + 1) : null;
-        }).filter(Boolean);
-        if (commandInput) commandInput.value = nums.length ? `达奇：扫描 ${nums.join(',')}` : '';
-      };
-      const pageStart = scanPage * SCAN_PAGE_SIZE;
-      scan.candidates.slice(pageStart, pageStart + SCAN_PAGE_SIZE).forEach((c) => {
-        const num = scan.candidates.findIndex((x) => x.path === c.path) + 1;
+      const countWrap = make('div', 'camp-item-time camp-mono', `已选 ${selected.size} 个工作区`);
+      countWrap.classList.add('camp-selected-count');
+      panelBody.append(countWrap);
+
+      const totalPages = Math.ceil(candidates.length / SCAN_PAGE_SIZE);
+      const currentPage = Math.min(scanPage, Math.max(0, totalPages - 1));
+      const pageItems = candidates.slice(currentPage * SCAN_PAGE_SIZE, (currentPage + 1) * SCAN_PAGE_SIZE);
+      pageItems.forEach((c) => {
+        const num = candidates.findIndex((x) => x.path === c.path) + 1;
         const item = (Array.isArray(scan.items) && scan.items.find((it) => it.path === c.path)) || {};
         const row = make('label', 'camp-scan-row');
         const box = document.createElement('input');
         box.type = 'checkbox';
         box.value = c.path;
-        box.checked = saved.includes(c.path);
-        box.addEventListener('change', refreshCommand);
+        box.checked = selected.has(c.path);
+        box.addEventListener('change', (event) => {
+          const next = readScanSelection();
+          if (event.target.checked) next.add(c.path);
+          else next.delete(c.path);
+          writeScanSelection(next);
+          countWrap.textContent = `已选 ${next.size} 个工作区`;
+          const action = panelBody.querySelector('[data-scan-select]');
+          if (action) {
+            action.textContent = next.size ? `让达奇查看这 ${next.size} 个工作区` : '请先勾选工作区';
+            action.disabled = next.size === 0;
+          }
+        });
         row.append(box);
         const info = make('div', '');
         const head = make('div', 'camp-scan-head-line');
+        const status = item.status === 'reading' ? '读取中'
+          : item.status === 'done' ? '已完成' : '待处理';
         head.append(make('span', 'camp-item-title', `${num}. ${c.path}`));
-        if (item.status === 'reading') head.append(make('span', 'camp-scan-chip doing', '读取中'));
-        if (item.status === 'done') head.append(make('span', 'camp-scan-chip done', '完成'));
+        const statusChip = status === '已完成' ? 'done' : (status === '读取中' ? 'doing' : '');
+        head.append(make('span', `camp-scan-chip${statusChip ? ` ${statusChip}` : ''}`, status));
         info.append(head);
         info.append(make('div', 'camp-item-time camp-mono',
           `${(c.agents || []).join(' · ')} · ${c.last_active || ''} · ${c.sessions || 0} 会话${c.in_shelf ? ' · 已在马厩' : ''}`));
-        const pct = Number(item.percent || 0);
-        if (item.status === 'reading' && pct > 0) {
+        const itemPct = Number(item.percent || 0);
+        if (item.status === 'reading' && itemPct > 0) {
           const mini = make('div', 'camp-scan-mini');
-          const fill = make('div', 'camp-scan-mini-fill');
-          fill.style.width = `${Math.max(0, Math.min(100, pct))}%`;
-          mini.append(fill);
+          const p = make('div', 'camp-scan-mini-fill');
+          p.style.width = `${Math.max(0, Math.min(100, itemPct))}%`;
+          mini.append(p);
           info.append(mini);
         }
         row.append(info);
         list.append(row);
       });
-      const pages = Math.ceil(scan.candidates.length / SCAN_PAGE_SIZE);
-      if (pages > 1) {
-        const pager = make('div', 'camp-scan-pages');
-        for (let p = 0; p < pages; p += 1) {
-          const btn = make('button', `camp-scan-page${p === scanPage ? ' on' : ''}`, String(p + 1));
-          btn.type = 'button';
-          btn.addEventListener('click', () => { scanPage = p; renderScan(); });
-          pager.append(btn);
-        }
+      panelBody.append(list);
+      if (totalPages > 1) {
+        const pager = make('div', 'camp-pages');
+        const previous = make('button', '', '上一页');
+        const next = make('button', '', '下一页');
+        const index = make('span', 'camp-mono', `第 ${currentPage + 1} 页，共 ${totalPages} 页`);
+        previous.type = next.type = 'button';
+        previous.disabled = currentPage <= 0;
+        next.disabled = currentPage >= totalPages - 1;
+        previous.addEventListener('click', () => {
+          if (scanPage > 0) { scanPage -= 1; renderScan(); }
+        });
+        next.addEventListener('click', () => {
+          if (scanPage < totalPages - 1) { scanPage += 1; renderScan(); }
+        });
+        pager.append(previous, index, next);
         panelBody.append(pager);
       }
-      panelBody.append(list);
       const actions = make('div', 'camp-scan-actions');
-      const rescanBtn = make('button', '', '扫本地 Agent');
-      rescanBtn.type = 'button';
-      rescanBtn.addEventListener('click', () => bridgePost('/scan', {}, rescanBtn));
-      actions.append(rescanBtn);
-      const shallowBtn = make('button', '', '快扫所选（免费）');
-      shallowBtn.type = 'button';
-      shallowBtn.addEventListener('click', () => {
+      const selectBtn = make('button', 'scan-select-button', `让达奇查看这 ${selected.size} 个工作区`);
+      selectBtn.type = 'button';
+      selectBtn.setAttribute('data-scan-select', '1');
+      if (!selected.size) selectBtn.disabled = true;
+      selectBtn.addEventListener('click', () => {
         const sel = scanSelection();
-        if (!sel.length) { shallowBtn.textContent = '先勾选'; setTimeout(() => { shallowBtn.textContent = '浅读所选'; }, 1200); return; }
-        bridgePost('/scan', { select: sel.join(','), depth: 'shallow' }, shallowBtn);
+        if (!sel.length) { selectBtn.textContent = '请先勾选工作区'; return; }
+        bridgePost('/scan', { select: sel.join(','), depth: 'shallow' }, selectBtn);
       });
-      actions.append(shallowBtn);
-      const deepBtn = make('button', '', '深挖所选（走大脑）');
-      deepBtn.type = 'button';
-      deepBtn.addEventListener('click', () => {
-        const sel = scanSelection();
-        if (!sel.length) { deepBtn.textContent = '先勾选'; setTimeout(() => { deepBtn.textContent = '深读所选'; }, 1200); return; }
-        bridgePost('/scan', { select: sel.join(','), depth: 'deep' }, deepBtn);
-      });
-      actions.append(deepBtn);
+      actions.append(selectBtn);
       panelBody.append(actions);
-      refreshCommand();
+      panelBody.append(make('div', 'camp-item-time camp-mono', '说明：这一步会把已选工作区交给达奇整理线索，不会写入账本。'));
     }
 
-    if (Array.isArray(scan.proposals) && scan.proposals.length) {
-      panelBody.append(make('div', 'camp-scan-head', '这波挖到的，都是新的：'));
+    if (hasProposals) {
+      const keep = readProposalKeep(scan.token || '', proposals);
+      const keptCount = Object.values(keep).filter(Boolean).length;
+      const keptIndices = [];
+      proposals.forEach((proposal, index) => {
+        const key = proposalFingerprint(proposal, index);
+        if (keep[key]) keptIndices.push(index);
+      });
+      panelBody.append(make('div', 'camp-scan-head', '第三步：审核并确认可带回结果。'));
       const list = make('div', 'camp-list');
-      scan.proposals.forEach((p) => {
+      proposals.forEach((proposal, index) => {
+        const key = proposalFingerprint(proposal, index);
         const row = make('div', 'camp-entry');
-        row.append(make('div', 'camp-item-title', `[${p.type}] ${p.title}`));
-        row.append(make('div', 'camp-item-time camp-mono', (p.line || '').slice(0, 90)));
+        row.append(make('div', 'camp-item-title', `${proposalTypeLabel(proposal)}：${proposal.title || '未命名'}`));
+        row.append(make('div', 'camp-scan-proposal-line', `判断依据：${proposal.why_now || '—'}`));
+        row.append(make('div', 'camp-scan-proposal-line', `证据：${proposal.evidence || '—'}`));
+        row.append(make('div', 'camp-scan-proposal-line', `来源：${proposal.source || '—'}`));
+        row.append(make('div', 'camp-scan-proposal-line', `一句话：${(proposal.line || '').slice(0, 120)}`));
+        const keepActions = make('div', 'camp-scan-actions camp-scan-proposal-actions');
+        const keepBtn = make('button', '', keep[key] ? '取消' : '保留');
+        keepBtn.type = 'button';
+        keepBtn.addEventListener('click', () => {
+          const next = readProposalKeep(scan.token || '', proposals);
+          next[key] = !next[key];
+          writeProposalKeep(scan.token || '', proposals, next);
+          renderScan();
+        });
+        keepActions.append(keepBtn);
+        row.append(keepActions);
         list.append(row);
       });
       panelBody.append(list);
@@ -1578,10 +1714,11 @@ SCENE_JS = r"""
         const hint = brain === 'deepseek' ? '大脑：DeepSeek'
           : brain === 'shallow' ? '大脑：启发式（无 key、无本机 Agent）'
           : `大脑：本机 Agent（${String(brain).replace('agent:', '')}）`;
-        tokRow.append(make('span', 'camp-item-time camp-mono', hint));
-        const tokBtn = make('button', '', '提交到账本 / 马厩');
+        const tokBtn = make('button', '', `确认带回营地（${keptCount} 条）`);
         tokBtn.type = 'button';
-        tokBtn.addEventListener('click', () => commitScan(scan.token, tokBtn));
+        tokBtn.disabled = keptCount === 0;
+        if (!tokBtn.disabled) tokBtn.addEventListener('click', () => commitScan(scan.token, tokBtn, keptIndices));
+        tokRow.append(make('span', 'camp-item-time camp-mono', `${hint}`));
         tokRow.append(tokBtn);
         panelBody.append(tokRow);
       }
@@ -1630,6 +1767,7 @@ SCENE_JS = r"""
   }
 
   function renderPanel() {
+    panelHead.querySelectorAll('.camp-panel-head-action').forEach((button) => button.remove());
     panelBody.replaceChildren();
     panel.className = `camp-panel camp-panel-${state.view}`;
     if (state.view === 'ledger') renderLedger();
@@ -1907,6 +2045,13 @@ def parse_pool(text: str) -> tuple[list[dict], list[str]]:
             link = ""
             last_seen = parts[-1] if len(parts) > 1 else ""
             mids = parts[1:-1] if len(parts) > 2 else []
+        extra_fields = []
+        if len(mids) > 2 and mids[2]:
+            extra_fields.append(f"最小验证：{mids[2]}")
+        if len(mids) > 3:
+            for idx, field in enumerate(mids[3:], 1):
+                if field:
+                    extra_fields.append(f"附加情报 {idx}：{field}")
         entries.append({
             "stage": stage,
             "text": text_part,
@@ -1916,6 +2061,7 @@ def parse_pool(text: str) -> tuple[list[dict], list[str]]:
             "link": link,
             "last_seen": last_seen,
             "raw": line,
+            "extra_fields": extra_fields,
         })
     return entries, warnings
 

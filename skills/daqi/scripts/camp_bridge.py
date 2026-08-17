@@ -251,7 +251,12 @@ class Handler(BaseHTTPRequestHandler):
             sys.path.insert(0, str(Path(__file__).resolve().parent))
             import camp_scan
 
-            wrote, shelf_added = camp_scan.commit_scan(self.store, str(payload.get("token", "")))
+            keep = payload.get("keep")
+            if isinstance(keep, list):
+                keep_indices = [int(v) for v in keep if str(v).isdigit() and int(v) >= 0]
+            else:
+                keep_indices = None
+            wrote, shelf_added = camp_scan.commit_scan(self.store, str(payload.get("token", "")), keep_indices)
             if wrote < 0:
                 self._send(409, {"ok": False, "error": "token 不匹配"})
                 return

@@ -425,7 +425,7 @@ def scan_flow(store: Path, select: str, depth: str = "shallow") -> tuple[list[di
     return proposals, token
 
 
-def commit_scan(store: Path, token: str) -> tuple[int, int]:
+def commit_scan(store: Path, token: str, keep_indices: list[int] | None = None) -> tuple[int, int]:
     """Write the state-held proposals into POOL/SHELF after token check."""
     state_path = store / STATE_NAME
     if not state_path.is_file():
@@ -437,6 +437,8 @@ def commit_scan(store: Path, token: str) -> tuple[int, int]:
     if state.get("token") != token:
         return -1, -1
     proposals = state.get("proposals", [])
+    if keep_indices is not None:
+        proposals = [p for index, p in enumerate(proposals) if index in keep_indices]
     pool_lines = []
     shelf_added = 0
     now = datetime.date.today().isoformat()
